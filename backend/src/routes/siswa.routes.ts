@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as asesmen from '../controllers/asesmen.controller';
+import * as nilai from '../controllers/nilaiRapor.controller';
 import * as c from '../controllers/siswa.controller';
 import { auth } from '../middleware/auth';
 import { requireRole } from '../middleware/requireRole';
@@ -23,3 +24,7 @@ siswaRouter.delete('/me/target-karir/:id', c.hapusTargetKarir);
 siswaRouter.post('/me/asesmen', asesmen.kirim);
 siswaRouter.get('/me/asesmen', asesmen.riwayat);
 siswaRouter.get('/me/asesmen/terakhir', asesmen.terakhir);
+
+siswaRouter.get('/me/nilai', nilai.daftarSiswa);
+siswaRouter.put('/me/nilai/semester/:semester', nilai.simpanSemester);
+siswaRouter.delete('/me/nilai/:id', nilai.hapus);

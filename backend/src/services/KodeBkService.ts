@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { AuthUser } from '../types/express';
 import { AppError, throwIfSupabaseError } from '../middleware/errorHandler';
 import { KodeBkModel } from '../models/kodeBk.model';
+import { sekolahBk } from './aksesBk';
 
 // Tanpa karakter yang mudah tertukar saat didikte/ditulis di papan: 0/O, 1/I/L.
 const ALFABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -17,13 +18,6 @@ function acakKode(): string {
 /** Samakan format input siswa dengan yang disimpan (uppercase, tanpa spasi/strip). */
 export function normalisasiKode(input: string): string {
   return input.replace(/[\s-]/g, '').toUpperCase();
-}
-
-function sekolahBk(user: AuthUser): string {
-  if (!user.sekolah_id) {
-    throw AppError.forbidden('Akun BK belum terhubung ke sekolah', 'BK_TANPA_SEKOLAH');
-  }
-  return user.sekolah_id;
 }
 
 export const KodeBkService = {
