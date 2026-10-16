@@ -3,24 +3,10 @@ import type { SiswaSaya } from "./types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type Peminatan =
-  | "IPA"
-  | "IPS"
-  | "Bahasa"
-  | "SMK"
-  | "Umum"
-  | "Agama"
-  | "Olahraga";
-export type GayaBelajar = "visual" | "auditori" | "kinestetik" | "baca_tulis";
-export type JenjangPendidikan =
-  | "D1"
-  | "D2"
-  | "D3"
-  | "D4"
-  | "S1"
-  | "S2"
-  | "S3"
-  | "profesi";
+// Samakan dengan enum di supabase/migrations (peminatan_sekolah, gaya_belajar, jenjang_pendidikan).
+export type Peminatan = "IPA" | "IPS" | "Bahasa" | "Merdeka" | "SMK";
+export type GayaBelajar = "praktik" | "teori" | "seimbang";
+export type JenjangPendidikan = "D3" | "D4" | "S1" | "kedinasan" | "langsung_kerja";
 
 export interface ProfilInput {
   nama: string;
