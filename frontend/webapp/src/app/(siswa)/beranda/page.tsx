@@ -1,5 +1,19 @@
-import React from "react";
+"use client";
+
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
 import "../../../styles/beranda.css";
+import { ApiError } from "../../../lib/api/client";
+import { daftarNilai } from "../../../lib/api/nilai";
+import { getTarget, terakhirAsesmen } from "../../../lib/api/rekomendasi";
+import { getMe } from "../../../lib/api/siswa";
+import type {
+  DaftarNilai,
+  DaftarTarget,
+  HasilAsesmen,
+  SiswaSaya,
+  TipeRiasec,
+} from "../../../lib/api/types";
 
 // SVG Icons
 import {
@@ -19,8 +33,6 @@ import {
   IconSearch,
   IconUser,
   IconUpload,
-  IconCalendar,
-  IconDownload,
   IconStar,
   IconBarChart,
   IconLayers,
@@ -34,28 +46,103 @@ import {
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-const RIASEC_SCORES = [
-  { label: "Investigative (I)", pct: 92, level: "Sangat Tinggi", color: "#006190" },
-  { label: "Realistic (R)", pct: 78, level: "Tinggi", color: "#007BB5" },
-  { label: "Conventional (C)", pct: 70, level: "Tinggi", color: "#525E7E" },
-  { label: "Artistic (A)", pct: 55, level: "Sedang", color: "#7C5400" },
-  { label: "Enterprising (E)", pct: 48, level: "Sedang", color: "#6F7881" },
-  { label: "Social (S)", pct: 42, level: "Cukup", color: "#BEC7D2" },
-];
+interface BerandaData {
+  me: SiswaSaya;
+  asesmen: HasilAsesmen | null;
+  nilai: DaftarNilai;
+  target: DaftarTarget;
+}
 
-const SUBJECTS = [
-  { name: "Informatika", grade: "A+", trend: "+15% di atas rata-rata sekolah", score: 96, avg: "Rata-rata 81" },
-  { name: "Matematika TL", grade: "A", trend: "+12% di atas rata-rata sekolah", score: 94, avg: "Rata-rata 82" },
-  { name: "Fisika", grade: "A", trend: "+9% di atas rata-rata sekolah", score: 91, avg: "Rata-rata 82" },
-];
+const RIASEC_META: Record<TipeRiasec, { label: string; color: string; ciri: string }> = {
+  R: { label: "Realistic (R)", color: "#007BB5", ciri: "praktis dan suka bekerja dengan alat atau mesin" },
+  I: { label: "Investigative (I)", color: "#006190", ciri: "analitis dan suka memecahkan masalah" },
+  A: { label: "Artistic (A)", color: "#7C5400", ciri: "kreatif dan ekspresif" },
+  S: { label: "Social (S)", color: "#BEC7D2", ciri: "senang membantu dan bekerja dengan orang" },
+  E: { label: "Enterprising (E)", color: "#6F7881", ciri: "persuasif dan suka memimpin" },
+  C: { label: "Conventional (C)", color: "#525E7E", ciri: "teliti dan terstruktur" },
+};
 
-const CHECKLIST = [
-  { label: "Profil", done: true },
-  { label: "Rapor S1-S4", done: true },
-  { label: "RIASEC", done: true },
-  { label: "Target Prodi", done: true },
-  { label: "Portofolio Prestasi", done: false },
-];
+/** Skor RIASEC = rata-rata skala 1–5 → persen. */
+const skorKePersen = (skor: number) => Math.round((skor / 5) * 100);
+
+function levelMinat(pct: number) {
+  if (pct >= 80) return "Sangat Tinggi";
+  if (pct >= 65) return "Tinggi";
+  if (pct >= 50) return "Sedang";
+  return "Cukup";
+}
+
+function hurufNilai(n: number) {
+  if (n >= 90) return "A";
+  if (n >= 80) return "B";
+  if (n >= 70) return "C";
+  return "D";
+}
+
+function skorRiasec(asesmen: HasilAsesmen | null) {
+  return (Object.keys(RIASEC_META) as TipeRiasec[])
+    .map((tipe) => {
+      const pct = skorKePersen(Number(asesmen?.riasec?.[tipe] ?? 0));
+      return { tipe, ...RIASEC_META[tipe], pct, level: levelMinat(pct) };
+    })
+    .sort((a, b) => b.pct - a.pct);
+}
+
+/** Tiga mapel dengan rata-rata tertinggi (nilai ditolak BK diabaikan). */
+function mapelUnggulan(nilai: DaftarNilai) {
+  const perMapel = new Map<string, { semester: number; nilai: number }[]>();
+  for (const n of nilai.nilai) {
+    if (n.status === "ditolak" || !n.mapel) continue;
+    const list = perMapel.get(n.mapel.nama) ?? [];
+    list.push({ semester: n.semester, nilai: Number(n.nilai) });
+    perMapel.set(n.mapel.nama, list);
+  }
+  return [...perMapel.entries()]
+    .map(([name, list]) => {
+      list.sort((a, b) => a.semester - b.semester);
+      const rata = list.reduce((t, x) => t + x.nilai, 0) / list.length;
+      const selisih = list[list.length - 1].nilai - list[0].nilai;
+      return {
+        name,
+        score: Math.round(rata),
+        grade: hurufNilai(rata),
+        naik: selisih >= 0,
+        trend:
+          list.length > 1
+            ? `${selisih >= 0 ? "+" : ""}${selisih.toFixed(1)} poin sejak semester ${list[0].semester}`
+            : `Semester ${list[0].semester}`,
+        avg: `Rata-rata ${list.length} semester`,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+}
+
+function checklist({ me, asesmen, nilai, target }: BerandaData) {
+  return [
+    { label: "Profil", done: me.kelengkapan.lengkap },
+    { label: "Nilai Rapor", done: nilai.nilai.length > 0 },
+    { label: "RIASEC", done: asesmen !== null },
+    { label: "Target Prodi", done: target.prodi.length > 0 },
+    { label: "Karir Impian", done: target.karir.length > 0 },
+  ];
+}
+
+function infoKelas(me: SiswaSaya) {
+  const s = me.siswa;
+  if (!s?.tingkat) return "Profil belum lengkap";
+  return [`Kelas ${s.tingkat}${s.rombel ? ` ${s.rombel}` : ""}`, s.peminatan]
+    .filter(Boolean)
+    .join(" ");
+}
+
+const namaKarir = (t: DaftarTarget["karir"][number]) => t.karir?.nama ?? t.teks_bebas ?? "-";
+
+/** Banyak huruf kode RIASEC prodi yang juga ada di kode Holland siswa. */
+function kecocokanKode(kodeSiswa: string | null, kodeProdi: string | null) {
+  if (!kodeSiswa || !kodeProdi) return null;
+  return [...kodeProdi].filter((h) => kodeSiswa.includes(h)).length;
+}
 
 const NAV_LINKS = [
   { label: "Beranda", href: "/beranda", active: true },
@@ -67,7 +154,7 @@ const NAV_LINKS = [
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function SiteHeader() {
+function SiteHeader({ nama, kelas }: { nama: string; kelas: string }) {
   return (
     <header className="site-header" role="banner">
       <nav className="nav-bar" aria-label="Navigasi utama">
@@ -118,15 +205,15 @@ function SiteHeader() {
           <span className="nav-divider" aria-hidden="true" />
 
           {/* User */}
-          <button className="nav-user" aria-label="Menu akun Citra Lestari">
+          <Link className="nav-user" href="/profil" aria-label={`Menu akun ${nama}`}>
             <span className="nav-user__avatar" aria-hidden="true">
               <IconUser size={12} color="#FFFFFF" />
             </span>
             <span className="nav-user__info">
-              <span className="nav-user__name">Citra Lestari</span>
-              <span className="nav-user__role">Kelas 12 IPA 1</span>
+              <span className="nav-user__name">{nama}</span>
+              <span className="nav-user__role">{kelas}</span>
             </span>
-          </button>
+          </Link>
         </div>
       </nav>
     </header>
@@ -135,9 +222,15 @@ function SiteHeader() {
 
 // ─── Section 1: Hero Header ────────────────────────────────────────────────
 
-function HeroSection() {
-  const doneCount = CHECKLIST.filter((c) => c.done).length;
-  const progressPct = Math.round((doneCount / CHECKLIST.length) * 100);
+function HeroSection({ data }: { data: BerandaData }) {
+  const { me, target } = data;
+  const items = checklist(data);
+  const doneCount = items.filter((c) => c.done).length;
+  const progressPct = Math.round((doneCount / items.length) * 100);
+  const sisa = items.length - doneCount;
+  const prodiUtama = target.prodi.find((t) => t.is_utama)?.prodi;
+  const karirImpian = target.karir[0];
+  const sekolah = me.profil.sekolah?.nama;
 
   return (
     <section className="hero-card" aria-labelledby="hero-greeting">
@@ -147,31 +240,34 @@ function HeroSection() {
         <div className="hero-academic-badge">
           <span className="hero-academic-badge__dot" aria-hidden="true" />
           <span className="hero-academic-badge__text">
-            Tahun Akademik 2024/2025 &bull; SNBP Ready
+            {me.siswa?.angkatan ? `Angkatan ${me.siswa.angkatan}` : "Angkatan belum diisi"}
+            {data.asesmen?.kode_holland ? <> &bull; Tipe {data.asesmen.kode_holland}</> : null}
           </span>
         </div>
 
         {/* Greeting */}
         <h1 className="hero-greeting" id="hero-greeting">
           Selamat Datang Kembali,{" "}
-          <span>Citra Lestari</span>
+          <span>{me.profil.nama ?? "Siswa"}</span>
         </h1>
 
         {/* School info */}
         <div className="hero-school-info">
           <IconSchool size={17} color="#006190" />
-          <span>Kelas 12-IPA 1 &bull; SMAN 8 Jakarta &bull; NISN: 0064921820</span>
+          <span>
+            {infoKelas(me)} &bull; {sekolah ?? "Belum terdaftar ke sekolah"}
+          </span>
         </div>
 
         {/* Target / career tags */}
         <div className="hero-tags">
           <span className="hero-tag hero-tag--blue">
             <IconBuilding size={14} color="#006190" />
-            Target Prodi: S1 Teknik Informatika (Fasilkom UI / STEI ITB)
+            Target Prodi: {prodiUtama?.nama ?? "Belum dipilih"}
           </span>
           <span className="hero-tag hero-tag--amber">
             <IconTarget size={14} color="#7C5400" />
-            Karir Impian: AI Research Engineer
+            Karir Impian: {karirImpian ? namaKarir(karirImpian) : "Belum dipilih"}
           </span>
         </div>
       </div>
@@ -181,8 +277,8 @@ function HeroSection() {
         {/* Header */}
         <div className="hero-progress-header">
           <div className="hero-progress-title">
-            <span className="hero-progress-label">Kesiapan Diagnostik SNBP</span>
-            <span className="hero-progress-value">Portofolio {progressPct}% Lengkap</span>
+            <span className="hero-progress-label">Kesiapan Diagnostik</span>
+            <span className="hero-progress-value">Data {progressPct}% Lengkap</span>
           </div>
           <span className="hero-progress-circle" aria-label={`${progressPct} persen`}>
             {progressPct}%
@@ -196,7 +292,7 @@ function HeroSection() {
 
         {/* Checklist pills */}
         <div className="checklist-pills" role="list" aria-label="Item kelengkapan">
-          {CHECKLIST.map((item) => (
+          {items.map((item) => (
             <span
               key={item.label}
               className={`checklist-pill ${item.done ? "checklist-pill--done" : "checklist-pill--pending"}`}
@@ -214,11 +310,13 @@ function HeroSection() {
 
         {/* Footer */}
         <div className="hero-progress-footer">
-          <span className="hero-progress-step-label">Tinggal 1 langkah untuk verifikasi</span>
-          <a href="/profil" className="link-inline">
-            Perbarui Portofolio
+          <span className="hero-progress-step-label">
+            {sisa === 0 ? "Semua data sudah lengkap" : `Tinggal ${sisa} langkah lagi`}
+          </span>
+          <Link href={me.kelengkapan.lengkap ? "/profil" : "/onboarding"} className="link-inline">
+            {me.kelengkapan.lengkap ? "Perbarui Profil" : "Lengkapi Profil"}
             <IconArrowRight size={9} color="#006190" />
-          </a>
+          </Link>
         </div>
       </aside>
     </section>
@@ -227,7 +325,37 @@ function HeroSection() {
 
 // ─── Column 1: Minat RIASEC ────────────────────────────────────────────────
 
-function KolomRIASEC() {
+function KolomRIASEC({ asesmen }: { asesmen: HasilAsesmen | null }) {
+  if (!asesmen) {
+    return (
+      <article className="analytics-card" aria-labelledby="riasec-title">
+        <div className="card-header">
+          <div className="card-header__left">
+            <span className="card-header__icon-box" aria-hidden="true">
+              <IconTarget size={16} color="#006190" />
+            </span>
+            <div className="card-header__title-group">
+              <h2 className="card-header__title" id="riasec-title">Minat RIASEC</h2>
+              <span className="card-header__subtitle">Belum ada data</span>
+            </div>
+          </div>
+        </div>
+        <p className="archetype-banner__body">
+          Kamu belum mengerjakan tes minat. Kerjakan dulu agar profil minatmu muncul di sini.
+        </p>
+        <div className="card-footer-action">
+          <Link className="btn-ghost-pill" href="/tes-minat">
+            Mulai Tes Minat
+            <IconChevronRight size={5} color="#006190" />
+          </Link>
+        </div>
+      </article>
+    );
+  }
+
+  const skor = skorRiasec(asesmen);
+  const [utama, kedua] = skor;
+
   return (
     <article className="analytics-card" aria-labelledby="riasec-title">
       {/* Header */}
@@ -241,26 +369,25 @@ function KolomRIASEC() {
             <span className="card-header__subtitle">Hasil Asesmen Holland</span>
           </div>
         </div>
-        <span className="badge-pill badge-pill--blue">TIPE IRC</span>
+        <span className="badge-pill badge-pill--blue">TIPE {asesmen.kode_holland ?? "-"}</span>
       </div>
 
       {/* Archetype banner */}
       <div className="archetype-banner">
         <div className="archetype-banner__label">
           <IconStar size={16} color="#006190" />
-          The Analytical Architect
+          Kode Holland {asesmen.kode_holland ?? "-"}
         </div>
         <p className="archetype-banner__body">
-          Kombinasi dominan <strong>Investigative (92%)</strong> dan{" "}
-          <strong>Realistic (78%)</strong> menandakan kemampuan pemecahan masalah
-          komputasional berstruktur tinggi yang selaras erat dengan rekayasa
-          algoritma AI dan riset perangkat lunak.
+          Kombinasi dominan <strong>{utama.label.split(" ")[0]} ({utama.pct}%)</strong> dan{" "}
+          <strong>{kedua.label.split(" ")[0]} ({kedua.pct}%)</strong> menandakan kamu{" "}
+          {utama.ciri}, serta {kedua.ciri}.
         </p>
       </div>
 
       {/* Score bars */}
       <div className="score-bars" role="list" aria-label="Skor RIASEC">
-        {RIASEC_SCORES.map((item) => {
+        {skor.map((item) => {
           const isHighlighted = item.pct >= 70;
           return (
             <div key={item.label} className="score-bar-item" role="listitem">
@@ -297,10 +424,10 @@ function KolomRIASEC() {
 
       {/* Footer */}
       <div className="card-footer-action">
-        <button className="btn-ghost-pill" type="button">
-          Eksplorasi Profil Minat Lengkap
+        <Link className="btn-ghost-pill" href="/tes-minat">
+          Ulangi Tes Minat
           <IconChevronRight size={5} color="#006190" />
-        </button>
+        </Link>
       </div>
     </article>
   );
@@ -308,7 +435,12 @@ function KolomRIASEC() {
 
 // ─── Column 2: Kekuatan Rapor ─────────────────────────────────────────────
 
-function KolomRapor() {
+function KolomRapor({ nilai, sekolah }: { nilai: DaftarNilai; sekolah: string | null }) {
+  const unggulan = mapelUnggulan(nilai);
+  const semester = [...new Set(nilai.nilai.map((n) => n.semester))].sort((a, b) => a - b);
+  const terverifikasi = nilai.nilai.filter((n) => n.status === "terverifikasi").length;
+  const menunggu = nilai.nilai.filter((n) => n.status === "menunggu").length;
+
   return (
     <article className="analytics-card" aria-labelledby="rapor-title">
       {/* Header */}
@@ -319,15 +451,22 @@ function KolomRapor() {
           </span>
           <div className="card-header__title-group">
             <h2 className="card-header__title" id="rapor-title">Kekuatan Rapor</h2>
-            <span className="card-header__subtitle">Semester 1-4 &bull; Terstandarisasi</span>
+            <span className="card-header__subtitle">
+              {semester.length
+                ? `Semester ${semester[0]}-${semester[semester.length - 1]} • Mapel unggulan`
+                : "Belum ada nilai"}
+            </span>
           </div>
         </div>
-        <span className="badge-pill badge-pill--ink">4 Semester</span>
+        <span className="badge-pill badge-pill--ink">{semester.length} Semester</span>
       </div>
 
       {/* Subject performance cards */}
       <div className="subject-cards" role="list" aria-label="Nilai mata pelajaran unggulan">
-        {SUBJECTS.map((subject) => (
+        {unggulan.length === 0 && (
+          <p className="subject-card__avg">Isi nilai rapor untuk melihat mapel unggulanmu.</p>
+        )}
+        {unggulan.map((subject) => (
           <div key={subject.name} className="subject-card" role="listitem">
             <div className="subject-card__left">
               <div className="subject-card__name-row">
@@ -335,7 +474,11 @@ function KolomRapor() {
                 <span className="subject-card__grade-badge">{subject.grade}</span>
               </div>
               <div className="subject-card__trend">
-                <IconTrendUp size={10} color="#006190" />
+                {subject.naik ? (
+                  <IconTrendUp size={10} color="#006190" />
+                ) : (
+                  <IconTrendDown size={3} color="#7C5400" />
+                )}
                 {subject.trend}
               </div>
             </div>
@@ -353,26 +496,40 @@ function KolomRapor() {
           <IconShield size={12} color="#FFFFFF" />
         </span>
         <div className="verification-strip__info">
-          <span className="verification-strip__name">Dra. Nurhayati, M.Pd</span>
+          <span className="verification-strip__name">
+            {terverifikasi} dari {nilai.nilai.length} nilai terverifikasi
+          </span>
           <span className="verification-strip__status">
             <IconCheck size={10} color="#006190" />
-            Nilai Resmi Terverifikasi BK SMAN 8
+            {menunggu > 0
+              ? `${menunggu} nilai menunggu verifikasi BK${sekolah ? ` ${sekolah}` : ""}`
+              : `Verifikasi oleh Guru BK${sekolah ? ` ${sekolah}` : ""}`}
           </span>
         </div>
       </div>
 
       {/* CTA */}
-      <button className="btn-primary-pill" type="button">
+      <Link className="btn-primary-pill" href="/nilai-rapor">
         <IconLayers size={12} color="#FFFFFF" />
         Kelola &amp; Input Nilai Semester
-      </button>
+      </Link>
     </article>
   );
 }
 
 // ─── Column 3: Rekomendasi ────────────────────────────────────────────────
 
-function KolomRekomendasi() {
+function KolomRekomendasi({
+  target,
+  asesmen,
+}: {
+  target: DaftarTarget;
+  asesmen: HasilAsesmen | null;
+}) {
+  const [utama, ...lainnya] = target.prodi;
+  const prodi = utama?.prodi;
+  const cocok = kecocokanKode(asesmen?.kode_holland ?? null, prodi?.kode_riasec ?? null);
+
   return (
     <article className="analytics-card" aria-labelledby="rekom-title">
       {/* Header */}
@@ -382,78 +539,85 @@ function KolomRekomendasi() {
             <IconGrid size={17} color="#006190" />
           </span>
           <div className="card-header__title-group">
-            <h2 className="card-header__title" id="rekom-title">Pilihan Teratas</h2>
-            <span className="card-header__subtitle">Rekomendasi Algoritma SNBP</span>
+            <h2 className="card-header__title" id="rekom-title">Target Prodi</h2>
+            <span className="card-header__subtitle">
+              {target.prodi.length ? `${target.prodi.length} prodi disimpan` : "Belum ada target"}
+            </span>
           </div>
         </div>
         <span className="badge-dot" aria-label="Status aktif" />
       </div>
 
-      {/* Major showcase card */}
-      <div className="major-showcase">
-        {/* Top row */}
-        <div className="major-showcase__top">
-          <div className="major-showcase__name-row">
-            <IconDiploma size={15} color="#006190" />
-            <span className="major-showcase__name">Teknik Informatika</span>
+      {prodi ? (
+        <div className="major-showcase">
+          {/* Top row */}
+          <div className="major-showcase__top">
+            <div className="major-showcase__name-row">
+              <IconDiploma size={15} color="#006190" />
+              <span className="major-showcase__name">{prodi.nama}</span>
+            </div>
+            <span className="match-badge">Utama</span>
           </div>
-          <span className="match-badge">96% Match</span>
-        </div>
 
-        {/* Campus tags */}
-        <div className="campus-tags">
-          <IconBuilding size={12} color="#3F4850" />
-          Universitas Indonesia (UI)
-          <span>&bull;</span>
-          ITB
-        </div>
+          {/* Campus tags */}
+          <div className="campus-tags">
+            <IconBuilding size={12} color="#3F4850" />
+            {prodi.bidang_studi?.nama ?? "Bidang studi -"}
+            <span>&bull;</span>
+            {prodi.jenis_pendidikan === "vokasi" ? "Vokasi" : "Akademik"}
+          </div>
 
-        {/* Metric blocks */}
-        <div className="metric-blocks">
-          <div className="metric-block">
-            <span className="metric-block__label">Tren Semester 1-4</span>
-            <div className="metric-block__value metric-block__value--positive">
-              <IconTrendUp size={13} color="#006190" />
-              +6.9% Positif
+          {/* Metric blocks */}
+          <div className="metric-blocks">
+            <div className="metric-block">
+              <span className="metric-block__label">Kode RIASEC Prodi</span>
+              <div className="metric-block__value metric-block__value--positive">
+                {prodi.kode_riasec ?? "-"}
+              </div>
+            </div>
+            <div className="metric-block">
+              <span className="metric-block__label">Kecocokan Minat</span>
+              <div
+                className={`metric-block__value ${
+                  cocok !== null && cocok >= 2
+                    ? "metric-block__value--positive"
+                    : "metric-block__value--warning"
+                }`}
+              >
+                {cocok === null ? "Tes minat dulu" : `${cocok}/${prodi.kode_riasec?.length ?? 3} huruf`}
+              </div>
             </div>
           </div>
-          <div className="metric-block">
-            <span className="metric-block__label">Gap Rapor Prasyarat</span>
-            <div className="metric-block__value metric-block__value--warning">
-              <IconTrendDown size={3} color="#7C5400" />
-              B. Inggris (-3 Poin)
-            </div>
-          </div>
         </div>
-
-        {/* Insight */}
+      ) : (
         <p className="major-showcase__insight">
-          Peluang rasionalisasi Sangat Tinggi pada klaster Fakultas Ilmu Komputer
-          berdasarkan bobot Mapel Pendukung Kurikulum Merdeka.
+          Kamu belum menyimpan target prodi. Pilih dari rekomendasi atau katalog prodi.
         </p>
-      </div>
+      )}
 
       {/* Alternative pathway */}
-      <div className="alt-pathway">
-        <div className="alt-pathway__header">
-          <span className="alt-pathway__title">Alternatif 2: Sistem Informasi (91%)</span>
-          <span className="alt-pathway__cta">Peluang Aman</span>
+      {lainnya.slice(0, 2).map((t, i) => (
+        <div key={t.id} className="alt-pathway">
+          <div className="alt-pathway__header">
+            <span className="alt-pathway__title">
+              Alternatif {i + 2}: {t.prodi?.nama ?? "-"}
+            </span>
+            <span className="alt-pathway__cta">{t.prodi?.kode_riasec ?? ""}</span>
+          </div>
+          <p className="alt-pathway__desc">{t.prodi?.bidang_studi?.nama ?? ""}</p>
         </div>
-        <p className="alt-pathway__desc">
-          Sesuai bila ingin menitikberatkan integrasi bisnis dan arsitektur data industri.
-        </p>
-      </div>
+      ))}
 
       {/* Action stack */}
       <div className="action-stack">
-        <button className="btn-ghost-pill" type="button">
-          <IconCalendar size={14} color="#006190" />
-          Jadwalkan Konseling dengan Guru BK
-        </button>
-        <button className="btn-text-link" type="button">
-          <IconDownload size={11} color="#3F4850" />
-          Unduh Ringkasan Rapor &amp; Analisis (PDF)
-        </button>
+        <Link className="btn-ghost-pill" href="/rekomendasi">
+          <IconCompass size={14} color="#006190" />
+          Lihat Rekomendasi Prodi
+        </Link>
+        <Link className="btn-text-link" href="/katalog-prodi">
+          <IconBookOpen size={11} color="#3F4850" />
+          Jelajahi Katalog Prodi
+        </Link>
       </div>
     </article>
   );
@@ -567,6 +731,42 @@ function SiteFooter() {
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export default function BerandaSiswaPage() {
+  const [data, setData] = useState<BerandaData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let batal = false;
+    Promise.all([getMe(), terakhirAsesmen(), daftarNilai(), getTarget()])
+      .then(([me, asesmen, nilai, target]) => {
+        if (batal) return;
+        // Login pertama: data siswa belum ada → arahkan ke onboarding.
+        if (!me.siswa) {
+          window.location.replace("/onboarding");
+          return;
+        }
+        setData({ me, asesmen, nilai, target });
+      })
+      .catch((err) => {
+        if (batal) return;
+        setError(err instanceof ApiError ? err.message : "Gagal memuat data. Coba lagi.");
+      });
+    return () => {
+      batal = true;
+    };
+  }, []);
+
+  if (!data) {
+    return (
+      <div className="page-beranda">
+        <main className="beranda-main" id="main-content">
+          <div className="beranda-container">
+            <p role={error ? "alert" : "status"}>{error ?? "Memuat data beranda..."}</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="page-beranda">
       {/* Ambient decorative blobs */}
@@ -574,20 +774,20 @@ export default function BerandaSiswaPage() {
       <div className="ambient-blob ambient-blob--mid-left" aria-hidden="true" />
 
       {/* Header */}
-      <SiteHeader />
+      <SiteHeader nama={data.me.profil.nama ?? "Siswa"} kelas={infoKelas(data.me)} />
 
       {/* Main content */}
       <main className="beranda-main" id="main-content">
         <div className="beranda-container">
           {/* Section 1 — Hero */}
-          <HeroSection />
+          <HeroSection data={data} />
 
           {/* Section 2 — Analytics 3-column */}
           <section aria-label="Dashboard Analitik Siswa">
             <div className="analytics-grid">
-              <KolomRIASEC />
-              <KolomRapor />
-              <KolomRekomendasi />
+              <KolomRIASEC asesmen={data.asesmen} />
+              <KolomRapor nilai={data.nilai} sekolah={data.me.profil.sekolah?.nama ?? null} />
+              <KolomRekomendasi target={data.target} asesmen={data.asesmen} />
             </div>
           </section>
 
