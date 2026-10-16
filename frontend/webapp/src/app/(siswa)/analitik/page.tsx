@@ -1,15 +1,15 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import "../../../styles/analitik.css";
 
 import {
   IconCompass,
-  IconTarget,
   IconBookOpen,
-  IconCheck,
   IconCheckCircle,
   IconTrendUp,
   IconTrendDown,
-  IconArrowRight,
   IconChevronRight,
   IconBuilding,
   IconSchool,
@@ -20,11 +20,28 @@ import {
   IconBarChart,
   IconLayers,
   IconMessage,
-  IconShield,
-  IconMapPin,
   IconStar,
   IconCalendar,
 } from "../../../components/siswa/Icons";
+import { detailKarir, detailProdi } from "../../../lib/api/katalog";
+import { daftarNilai } from "../../../lib/api/nilai";
+import { getTarget, terakhirAsesmen } from "../../../lib/api/rekomendasi";
+import { getMe } from "../../../lib/api/siswa";
+import type {
+  DaftarNilai,
+  DaftarTarget,
+  DetailKarir,
+  DetailProdi,
+  HasilAsesmen,
+  SiswaSaya,
+} from "../../../lib/api/types";
+import {
+  infoKelas,
+  labelJenis,
+  pesanError,
+  skorKecocokan,
+  skorMapelPendukung,
+} from "../../../lib/riasec";
 
 // ─── Additional SVG icons specific to analitik page ─────────────────────────
 
@@ -51,25 +68,9 @@ const IconBriefcase = ({ size = 18, color = "#006190", className }: { size?: num
   </svg>
 );
 
-const IconRupiah = ({ size = 15, color = "#006190", className }: { size?: number; color?: string; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
-    <circle cx="7.5" cy="7.5" r="6.5" stroke={color} strokeWidth="1.3" />
-    <path d="M5 5H9.5C10.3 5 11 5.7 11 6.5C11 7.3 10.3 8 9.5 8H5" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
-    <path d="M5 8H10M5 10H10" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
-    <path d="M5 5V11" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
-  </svg>
-);
-
 const IconQuote = ({ size = 34, color = "#D3E4FE", className }: { size?: number; color?: string; className?: string }) => (
   <svg width={size} height={24} viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
     <path d="M0 24V15C0 11 1.3 7.7 4 5C6.7 2.3 10 0.7 14 0L15.5 3C12.5 3.7 10.2 5 8.5 7C6.8 9 6 11.3 6 14H12V24H0ZM18 24V15C18 11 19.3 7.7 22 5C24.7 2.3 28 0.7 32 0L33.5 3C30.5 3.7 28.2 5 26.5 7C24.8 9 24 11.3 24 14H30V24H18Z" fill={color} />
-  </svg>
-);
-
-const IconTrendingUp = ({ size = 13, color = "#006190", className }: { size?: number; color?: string; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
-    <path d="M1.5 9.5L5.5 5.5L7.5 7.5L12 3" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M9 3H12V6" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -91,177 +92,64 @@ const NAV_LINKS = [
   { label: "Katalog Kampus", href: "/katalog-prodi" },
 ];
 
-const QUICK_METRICS = [
-  {
-    label: "Rata-Rata Mapel Pendukung",
-    iconWrapClass: "metric-card__icon-wrap--blue",
-    icon: <IconBarChart size={15} color="#006190" />,
-    bigValue: "91",
-    bigClass: "metric-card__big--brand",
-    unit: "/100",
-    unitClass: "metric-card__unit",
-    footerIcon: <IconTrendUp size={13} color="#006190" />,
-    footerText: "Top 3% Angkatan SMAN 8 ITB",
-    footerClass: "metric-card__footer-text--brand",
-  },
-  {
-    label: "Peluang Nilai",
-    iconWrapClass: "metric-card__icon-wrap--purple",
-    icon: <IconMapPin size={12} color="#525E7E" />,
-    bigValue: "96.0",
-    bigClass: "metric-card__big--ink",
-    unit: "Kemendikbud",
-    unitClass: "metric-card__unit--sm",
-    footerIcon: <IconBuilding size={13} color="#525E7E" />,
-    footerText: "Rank 4/46 Kelas 12 IPA Sejawa",
-    footerClass: "metric-card__footer-text--muted",
-  },
-  {
-    label: "Kelulusan Threshold",
-    iconWrapClass: "metric-card__icon-wrap--blue",
-    icon: <IconGraduationCap size={12} color="#006190" />,
-    bigValue: "88%",
-    bigClass: "metric-card__big--ink",
-    unit: "Terpenuhi",
-    unitClass: "metric-card__unit--sm",
-    footerIcon: <IconShield size={8} color="#006190" />,
-    footerText: "3x Juara Mapel di UI/ITB",
-    footerClass: "metric-card__footer-text--brand",
-  },
-  {
-    label: "Potensi Kompetisi",
-    iconWrapClass: "metric-card__icon-wrap--amber",
-    icon: <IconStar size={15} color="#7C5400" />,
-    bigValue: "Top 5%",
-    bigClass: "metric-card__big--amber",
-    unit: "Kota",
-    unitClass: "metric-card__unit--sm",
-    footerIcon: <IconAlertTriangle size={11} color="#7C5400" />,
-    footerText: "Peluang Sangat Kompetitif Impian",
-    footerClass: "metric-card__footer-text--amber",
-  },
-];
+/** Selisih (poin) dari rata-rata rapor yang dianggap kekuatan / kelemahan. */
+const AMBANG_SELISIH = 3;
 
-const SUBJECTS = [
-  {
-    name: "Matematika Tingkat Lanjut",
-    category: "Mapel Wajib Kurikulum Merdeka, Kelompok Sains B",
-    iconBoxClass: "subject-row__icon-box--brand",
-    icon: <IconPencil size={15} color="#FFFFFF" />,
-    score: "94.0",
-    scoreTarget: "Typ: 91.0",
-    badge: "Jauh Melampaui",
-    badgeClass: "subject-row__badge--brand",
-    fillPct: 94,
-    targetPct: 88,
-    isDeficit: false,
-    fillClass: "subject-row__fill--brand",
-    leftLabel: "Nilaimu: 94.0 — Melampaui Threshold",
-    rightLabel: "Thr: 91.0 — Gap: +3.0 (aman)",
-    rightLabelClass: "subject-row__bar-label--brand",
-  },
-  {
-    name: "Informatika / Pemrograman",
-    category: "Projek Penguatan Pelajar Pancasila (P5) Sains Komp.",
-    iconBoxClass: "subject-row__icon-box--blue",
-    icon: <IconLayers size={16} color="#FCFCFF" />,
-    score: "96.0",
-    scoreTarget: "Typ: 91.0",
-    badge: "Jauh Melampaui",
-    badgeClass: "subject-row__badge--brand",
-    fillPct: 96,
-    targetPct: 85,
-    isDeficit: false,
-    fillClass: "subject-row__fill--brand",
-    leftLabel: "Nilaimu: 96.0 — Melampaui Threshold",
-    rightLabel: "Thr: 85.0 — Gap: +11.0 (aman)",
-    rightLabelClass: "subject-row__bar-label--brand",
-  },
-  {
-    name: "Fisika",
-    category: "Mapel Pilihan Peminatan Sains / Pelajar Informatika",
-    iconBoxClass: "subject-row__icon-box--muted",
-    icon: <IconTarget size={13} color="#525E7E" />,
-    score: "91.0",
-    scoreTarget: "Typ: 91.0",
-    badge: "Di Ambang Batas",
-    badgeClass: "subject-row__badge--brand",
-    fillPct: 91,
-    targetPct: 84,
-    isDeficit: false,
-    fillClass: "subject-row__fill--brand",
-    leftLabel: "Nilaimu: 91.0 — Di threshold",
-    rightLabel: "Thr: 84.0 — Gap: +7.0 (aman)",
-    rightLabelClass: "subject-row__bar-label--brand",
-  },
-  {
-    name: "Bahasa Inggris Akademik",
-    category: "PRIORITAS — Defisit 3 Poin dari Threshold Minimum UI",
-    iconBoxClass: "subject-row__icon-box--amber",
-    icon: <IconAlertTriangle size={18} color="#FFFFFF" />,
-    score: "82.0",
-    scoreTarget: "Typ: 86.0",
-    badge: "Defisit Prioritas",
-    badgeClass: "subject-row__badge--amber",
-    fillPct: 82,
-    targetPct: 85,
-    isDeficit: true,
-    fillClass: "subject-row__fill--amber",
-    leftLabel: "Nilaimu: 82.0 — Di bawah threshold",
-    rightLabel: "Defisit: -3.0 poin — Perlu segera ditutup",
-    rightLabelClass: "subject-row__bar-label--amber",
-  },
-];
+interface AnalitikData {
+  me: SiswaSaya;
+  asesmen: HasilAsesmen | null;
+  nilai: DaftarNilai;
+  target: DaftarTarget;
+  prodi: DetailProdi | null;
+  karir: DetailKarir | null;
+}
 
-const ACTION_PLANS = [
-  {
-    tag: "LANGKAH 1",
-    tagClass: "action-plan-card__tag--brand",
-    title: "Penguatan Nilai Tugas Bahasa Inggris",
-    desc: "Targetkan minimal 89 pada penulisan esai ilmiah & remedial modul reading comprehension semester 5.",
-    footerIcon: <IconCheckCircle size={13} color="#006190" />,
-    footerText: "Minggu ke-1 Smt 5",
-    footerClass: "action-plan-card__footer-text--brand",
-  },
-  {
-    tag: "LANGKAH 2",
-    tagClass: "action-plan-card__tag--muted",
-    title: "Portofolio Kompetisi Sains",
-    desc: "Daftarkan sertifikat Juara 2 OSN Informatika Kota Jakarta untuk nilai tambah sertifikasi institusional.",
-    footerIcon: <IconChevronRight size={5} color="#525E7E" />,
-    footerText: "Sebelum verifikasi PDSS",
-    footerClass: "action-plan-card__footer-text--muted",
-  },
-  {
-    tag: "LANGKAH 3",
-    tagClass: "action-plan-card__tag--amber",
-    title: "Simulasi Pemeringkatan Paralel",
-    desc: "Ikuti uji rasionalisasi internal sekolah untuk mengamankan kuota 40% siswa eligible sekolah akreditasi A.",
-    footerIcon: <IconAlertTriangle size={14} color="#7C5400" />,
-    footerText: "Deadline: Smt 5",
-    footerClass: "action-plan-card__footer-text--amber",
-  },
-];
+type StatusMapel = "kuat" | "sejajar" | "kurang" | "kosong";
 
-// Chart data
-const CHART_POINTS = [
-  { sem: "Semester 1", val: 88.5, x: 15, y: 108 },
-  { sem: "Semester 2", val: 90.2, x: 38, y: 84 },
-  { sem: "Semester 3", val: 92.4, x: 61, y: 51 },
-  { sem: "Semester 4", val: 94.1, x: 85, y: 28 },
-];
+interface BarisMapel {
+  id: number;
+  nama: string;
+  bobot: number;
+  nilai: number | null;
+  diambil: boolean;
+  status: StatusMapel;
+}
 
-const SKILL_CHIPS = [
-  "Python & C++",
-  "Machine Learning",
-  "Natural Language Processing",
-  "Deep Learning (PyTorch)",
-  "Linear Algebra",
-];
+function rataRapor(nilai: DaftarNilai) {
+  const valid = nilai.nilai.filter((n) => n.status !== "ditolak");
+  if (!valid.length) return null;
+  return valid.reduce((t, n) => t + Number(n.nilai), 0) / valid.length;
+}
+
+/** Rata-rata per semester (mapel tertentu saja bila `mapelIds` diisi). */
+function trenSemester(nilai: DaftarNilai, mapelIds: Set<number> | null) {
+  const per = new Map<number, number[]>();
+  for (const n of nilai.nilai) {
+    if (n.status === "ditolak" || !n.mapel) continue;
+    if (mapelIds && !mapelIds.has(n.mapel.id)) continue;
+    per.set(n.semester, [...(per.get(n.semester) ?? []), Number(n.nilai)]);
+  }
+  return [...per.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([sem, list]) => ({ sem, val: list.reduce((t, x) => t + x, 0) / list.length }));
+}
+
+function barisMapel(prodi: DetailProdi | null, me: SiswaSaya, rapor: number | null): BarisMapel[] {
+  const diambil = new Set(me.mapel.map((m) => m.mapel.id));
+  return (prodi?.mapel_pendukung ?? []).map((m) => {
+    const nilai = m.nilai_terakhir_siswa == null ? null : Number(m.nilai_terakhir_siswa);
+    let status: StatusMapel = "kosong";
+    if (nilai !== null && rapor !== null) {
+      status =
+        nilai >= rapor + AMBANG_SELISIH ? "kuat" : nilai <= rapor - AMBANG_SELISIH ? "kurang" : "sejajar";
+    }
+    return { id: m.mapel.id, nama: m.mapel.nama, bobot: Number(m.bobot), nilai, diambil: diambil.has(m.mapel.id), status };
+  });
+}
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function SiteHeader() {
+function SiteHeader({ nama, kelas }: { nama: string; kelas: string }) {
   return (
     <header className="ak-header" role="banner">
       <nav className="ak-nav" aria-label="Navigasi utama">
@@ -306,15 +194,15 @@ function SiteHeader() {
 
           <span className="ak-nav-divider" aria-hidden="true" />
 
-          <button className="ak-nav-user" type="button" aria-label="Menu akun Citra Lestari">
+          <Link className="ak-nav-user" href="/profil" aria-label={`Menu akun ${nama}`}>
             <span className="ak-nav-user__avatar" aria-hidden="true">
               <IconUser size={12} color="#FFFFFF" />
             </span>
             <span className="ak-nav-user__info">
-              <span className="ak-nav-user__name">Citra Lestari</span>
-              <span className="ak-nav-user__role">Kelas 12 IPA 1</span>
+              <span className="ak-nav-user__name">{nama}</span>
+              <span className="ak-nav-user__role">{kelas}</span>
             </span>
-          </button>
+          </Link>
         </div>
       </nav>
     </header>
@@ -323,7 +211,12 @@ function SiteHeader() {
 
 // ── Target Hero Card ──────────────────────────────────────────────────────────
 
-function TargetHeroCard() {
+function TargetHeroCard({ data }: { data: AnalitikData }) {
+  const { me, prodi, karir, asesmen } = data;
+  const kodeSiswa = asesmen?.kode_holland ?? null;
+  const cocok = skorKecocokan(prodi?.kode_riasec ?? null, kodeSiswa);
+  const karirImpian = karir?.nama ?? data.target.karir[0]?.teks_bebas ?? "Belum dipilih";
+
   return (
     <section className="target-hero" aria-labelledby="target-hero-title">
       {/* Decorative blobs */}
@@ -334,54 +227,54 @@ function TargetHeroCard() {
       <div className="target-hero__breadcrumb">
         <span className="target-hero__badge">
           <span className="target-hero__badge-dot" aria-hidden="true" />
-          Laporan Analisis Keselarasan &bull; SNBP 2025
+          Laporan Analisis Keselarasan
         </span>
-        <span className="target-hero__badge2">Pertimbangan Mandela 2024/2025</span>
+        <span className="target-hero__badge2">{prodi?.bidang_studi?.nama ?? "Bidang studi -"}</span>
       </div>
 
       {/* Inner: left + right */}
       <div className="target-hero__inner">
         {/* Left: program info */}
         <div className="target-hero__left">
-          {/* Program row */}
           <div className="target-hero__program-row">
-            <span className="target-hero__program-label">TARGET S1 / ITB-UI</span>
+            <span className="target-hero__program-label">
+              TARGET PRODI UTAMA &bull; {labelJenis(prodi?.jenis_pendidikan).toUpperCase()}
+            </span>
             <IconGraduationCap size={16} color="#006190" />
           </div>
 
-          {/* H1 */}
           <h1 className="target-hero__title" id="target-hero-title">
-            S1 Teknik Informatika (Fasilkom UI / STEI ITB)
+            {prodi?.nama ?? "-"}
           </h1>
 
-          {/* Info tags */}
           <div className="target-hero__tags">
             <span className="target-hero__tag">
               <IconBuilding size={15} color="#006190" />
-              Karir Impian: Artificial Intelligence Engineer
+              Karir Impian: {karirImpian}
             </span>
             <span className="target-hero__tag" style={{ background: "#EFF4FF" }}>
               <IconSchool size={17} color="#525E7E" />
-              Status: Citra Lestari &bull; NISN: 0064921820
+              {me.profil.nama ?? "Siswa"}
+              {me.profil.sekolah ? ` • ${me.profil.sekolah.nama}` : ""}
             </span>
           </div>
         </div>
 
-        {/* Right: student photo & cluster */}
-        <aside className="target-hero__right" aria-label="Identitas siswa dan klaster">
-          {/* Avatar */}
-          <div className="target-hero__avatar" aria-label="Foto profil Citra Lestari">
+        {/* Right: student & match */}
+        <aside className="target-hero__right" aria-label="Kecocokan minat">
+          <div className="target-hero__avatar" aria-hidden="true">
             <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <circle cx="22" cy="18" r="10" fill="#CBE6FF" />
               <ellipse cx="22" cy="38" rx="16" ry="10" fill="#CBE6FF" />
               <circle cx="22" cy="18" r="7" fill="#006190" opacity="0.3" />
             </svg>
           </div>
-          {/* Info */}
           <div className="target-hero__student-info">
-            <span className="target-hero__cluster-label">Estimasi / Validasi</span>
-            <span className="target-hero__cluster-value">Klaster I Unggulan</span>
-            <span className="target-hero__cluster-sub">96% Prediksi Match</span>
+            <span className="target-hero__cluster-label">Kecocokan Minat</span>
+            <span className="target-hero__cluster-value">{cocok !== null ? `${cocok}%` : "–"}</span>
+            <span className="target-hero__cluster-sub">
+              {kodeSiswa ? `Prodi ${prodi?.kode_riasec ?? "-"} vs kamu ${kodeSiswa}` : "Belum tes minat"}
+            </span>
           </div>
         </aside>
       </div>
@@ -391,12 +284,70 @@ function TargetHeroCard() {
 
 // ── 4 Quick Metrics ───────────────────────────────────────────────────────────
 
-function QuickMetrics() {
+function QuickMetrics({ data, baris }: { data: AnalitikData; baris: BarisMapel[] }) {
+  const rapor = rataRapor(data.nilai);
+  const mapel = data.prodi ? skorMapelPendukung(data.prodi.mapel_pendukung) : null;
+  const diambil = baris.filter((b) => b.diambil).length;
+  const linear = baris.length ? Math.round((diambil / baris.length) * 100) : null;
+  const kodeSiswa = data.asesmen?.kode_holland ?? null;
+  const cocok = skorKecocokan(data.prodi?.kode_riasec ?? null, kodeSiswa);
+
+  const metrics = [
+    {
+      label: "Rata-Rata Mapel Pendukung",
+      iconWrapClass: "metric-card__icon-wrap--blue",
+      icon: <IconBarChart size={15} color="#006190" />,
+      bigValue: mapel !== null ? mapel.toFixed(1) : "–",
+      bigClass: "metric-card__big--brand",
+      unit: "/100",
+      unitClass: "metric-card__unit",
+      footerIcon: <IconBookOpen size={13} color="#006190" />,
+      footerText: `${baris.length} mapel pendukung prodi`,
+      footerClass: "metric-card__footer-text--brand",
+    },
+    {
+      label: "Rata-Rata Rapor",
+      iconWrapClass: "metric-card__icon-wrap--purple",
+      icon: <IconLayers size={12} color="#525E7E" />,
+      bigValue: rapor !== null ? rapor.toFixed(1) : "–",
+      bigClass: "metric-card__big--ink",
+      unit: "/100",
+      unitClass: "metric-card__unit--sm",
+      footerIcon: <IconCalendar size={13} color="#525E7E" />,
+      footerText: data.nilai.semester_maks ? `Semester 1–${data.nilai.semester_maks}` : "Belum ada nilai",
+      footerClass: "metric-card__footer-text--muted",
+    },
+    {
+      label: "Mapel Pendukung Diambil",
+      iconWrapClass: "metric-card__icon-wrap--blue",
+      icon: <IconGraduationCap size={12} color="#006190" />,
+      bigValue: linear !== null ? `${linear}%` : "–",
+      bigClass: "metric-card__big--ink",
+      unit: "Linear",
+      unitClass: "metric-card__unit--sm",
+      footerIcon: <IconCheckCircle size={13} color="#006190" />,
+      footerText: `${diambil} dari ${baris.length} mapel sedang kamu ambil`,
+      footerClass: "metric-card__footer-text--brand",
+    },
+    {
+      label: "Kecocokan Minat RIASEC",
+      iconWrapClass: "metric-card__icon-wrap--amber",
+      icon: <IconStar size={15} color="#7C5400" />,
+      bigValue: cocok !== null ? `${cocok}%` : "–",
+      bigClass: "metric-card__big--amber",
+      unit: kodeSiswa ?? "",
+      unitClass: "metric-card__unit--sm",
+      footerIcon: <IconAlertTriangle size={11} color="#7C5400" />,
+      footerText: kodeSiswa ? `Kode prodi: ${data.prodi?.kode_riasec ?? "-"}` : "Kerjakan tes minat dulu",
+      footerClass: "metric-card__footer-text--amber",
+    },
+  ];
+
   return (
     <section aria-label="Metrik Cepat Analisis">
       <div className="metrics-row">
-        {QUICK_METRICS.map((m, idx) => (
-          <article key={idx} className="metric-card">
+        {metrics.map((m) => (
+          <article key={m.label} className="metric-card">
             <div className="metric-card__header">
               <span className="metric-card__label">{m.label}</span>
               <span className={`metric-card__icon-wrap ${m.iconWrapClass}`} aria-hidden="true">
@@ -420,34 +371,35 @@ function QuickMetrics() {
 
 // ── Sticky Action Bar ─────────────────────────────────────────────────────────
 
-function ActionBar() {
+function ActionBar({ data }: { data: AnalitikData }) {
+  const { me } = data;
   return (
     <div className="action-bar-wrap" role="toolbar" aria-label="Aksi halaman">
       <div className="action-bar">
-        {/* Left: student info */}
         <div className="action-bar__left">
           <span className="action-bar__icon-wrap" aria-hidden="true">
             <IconBookOpen size={12} color="#006190" />
           </span>
           <div className="action-bar__text">
-            <span className="action-bar__title">Analisis Keselarasan: S1 Teknik Informatika</span>
-            <span className="action-bar__sub">Citra Lestari &bull; SMAN 8 Jakarta &bull; Kelas 12 IPA 1</span>
+            <span className="action-bar__title">Analisis Keselarasan: {data.prodi?.nama ?? "-"}</span>
+            <span className="action-bar__sub">
+              {[me.profil.nama, me.profil.sekolah?.nama, infoKelas(me)].filter(Boolean).join(" • ")}
+            </span>
           </div>
         </div>
 
-        {/* Right: action buttons */}
         <div className="action-bar__right">
-          <button className="btn-ghost-pill-sm" type="button">
+          <Link className="btn-ghost-pill-sm" href="/rekomendasi">
             <IconGraduationCap size={13} color="#0B1C30" />
             Alternatif Prodi
-          </button>
+          </Link>
           <button className="btn-ghost-pill-sm btn-ghost-pill-sm--blue" type="button">
             <IconMessage size={15} color="#006190" />
             Konsultasi BK
           </button>
-          <button className="btn-primary-pill-lg" type="button">
+          <button className="btn-primary-pill-lg" type="button" onClick={() => window.print()}>
             <IconDownload size={16} color="#FFFFFF" />
-            Unduh Laporan Analisis Keselarasan (PDF)
+            Cetak Laporan Analisis Keselarasan
           </button>
         </div>
       </div>
@@ -457,10 +409,16 @@ function ActionBar() {
 
 // ── Gap Analysis Section ──────────────────────────────────────────────────────
 
-function GapAnalysisSection() {
+const STATUS_UI: Record<StatusMapel, { badge: string; deficit: boolean; iconBox: string }> = {
+  kuat: { badge: "Kekuatan", deficit: false, iconBox: "subject-row__icon-box--brand" },
+  sejajar: { badge: "Sejajar Rata-rata", deficit: false, iconBox: "subject-row__icon-box--blue" },
+  kurang: { badge: "Perlu Ditingkatkan", deficit: true, iconBox: "subject-row__icon-box--amber" },
+  kosong: { badge: "Belum Ada Nilai", deficit: false, iconBox: "subject-row__icon-box--muted" },
+};
+
+function GapAnalysisSection({ baris, rapor }: { baris: BarisMapel[]; rapor: number | null }) {
   return (
     <article className="section-card" aria-labelledby="gap-analysis-title">
-      {/* Header */}
       <div className="sc-header">
         <div className="sc-header__left">
           <div className="sc-header__title-row">
@@ -470,64 +428,89 @@ function GapAnalysisSection() {
             </h2>
           </div>
           <p className="sc-header__subtitle">
-            Komparasi nilai kamu vs threshold penerimaan per bidang studi, nilai 24/VI/2022
+            Nilai terakhirmu pada mapel pendukung prodi target, dibandingkan dengan rata-rata
+            rapormu sendiri
           </p>
         </div>
-        <span className="sc-header__badge">Bobot SNBP 20%</span>
+        <span className="sc-header__badge">
+          Acuan: rata-rata rapor {rapor !== null ? rapor.toFixed(1) : "–"}
+        </span>
       </div>
 
-      {/* Subject rows */}
+      {baris.length === 0 && (
+        <p className="sc-header__subtitle">Prodi ini belum punya data mapel pendukung.</p>
+      )}
+
       <div className="gap-rows" role="list" aria-label="Daftar analisis mata pelajaran">
-        {SUBJECTS.map((s, idx) => (
-          <div
-            key={idx}
-            className={`subject-row${s.isDeficit ? " subject-row--deficit" : ""}`}
-            role="listitem"
-            aria-label={`Mata pelajaran ${s.name}`}
-          >
-            {/* Top row */}
-            <div className="subject-row__top">
-              {/* Left: icon + name */}
-              <div className="subject-row__left">
-                <span className={`subject-row__icon-box ${s.iconBoxClass}`} aria-hidden="true">
-                  {s.icon}
-                </span>
-                <div className="subject-row__meta">
-                  <span className="subject-row__name">{s.name}</span>
-                  <span className={`subject-row__category${s.isDeficit ? " subject-row__category--deficit" : ""}`}>
-                    {s.category}
+        {baris.map((s) => {
+          const ui = STATUS_UI[s.status];
+          const selisih = s.nilai !== null && rapor !== null ? s.nilai - rapor : null;
+          return (
+            <div
+              key={s.id}
+              className={`subject-row${ui.deficit ? " subject-row--deficit" : ""}`}
+              role="listitem"
+              aria-label={`Mata pelajaran ${s.nama}`}
+            >
+              <div className="subject-row__top">
+                <div className="subject-row__left">
+                  <span className={`subject-row__icon-box ${ui.iconBox}`} aria-hidden="true">
+                    {ui.deficit ? (
+                      <IconAlertTriangle size={18} color="#FFFFFF" />
+                    ) : (
+                      <IconPencil size={15} color="#FFFFFF" />
+                    )}
+                  </span>
+                  <div className="subject-row__meta">
+                    <span className="subject-row__name">{s.nama}</span>
+                    <span className={`subject-row__category${ui.deficit ? " subject-row__category--deficit" : ""}`}>
+                      Bobot {s.bobot} &bull; {s.diambil ? "Sedang kamu ambil" : "Belum kamu ambil"}
+                    </span>
+                  </div>
+                </div>
+                <div className="subject-row__right">
+                  <span className="subject-row__score">{s.nilai !== null ? s.nilai.toFixed(1) : "–"}</span>
+                  <span className="subject-row__score-unit">
+                    Rata: {rapor !== null ? rapor.toFixed(1) : "–"}
+                  </span>
+                  <span
+                    className={`subject-row__badge ${ui.deficit ? "subject-row__badge--amber" : "subject-row__badge--brand"}`}
+                  >
+                    {ui.badge}
                   </span>
                 </div>
               </div>
-              {/* Right: score + badge */}
-              <div className="subject-row__right">
-                <span className="subject-row__score">{s.score}</span>
-                <span className="subject-row__score-unit">{s.scoreTarget}</span>
-                <span className={`subject-row__badge ${s.badgeClass}`}>{s.badge}</span>
-              </div>
-            </div>
 
-            {/* Bar */}
-            <div className="subject-row__bar-wrap">
-              <div className="subject-row__track" role="presentation">
-                <div
-                  className={`subject-row__fill ${s.fillClass}`}
-                  style={{ width: `${s.fillPct}%` }}
-                  aria-label={`Nilai ${s.score}`}
-                />
-                <div
-                  className={`subject-row__divider${s.isDeficit ? " subject-row__divider--deficit" : ""}`}
-                  style={{ left: `${s.targetPct}%` }}
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="subject-row__bar-labels">
-                <span className="subject-row__bar-label">{s.leftLabel}</span>
-                <span className={`subject-row__bar-label ${s.rightLabelClass}`}>{s.rightLabel}</span>
+              <div className="subject-row__bar-wrap">
+                <div className="subject-row__track" role="presentation">
+                  <div
+                    className={`subject-row__fill ${ui.deficit ? "subject-row__fill--amber" : "subject-row__fill--brand"}`}
+                    style={{ width: `${s.nilai ?? 0}%` }}
+                  />
+                  {rapor !== null && (
+                    <div
+                      className={`subject-row__divider${ui.deficit ? " subject-row__divider--deficit" : ""}`}
+                      style={{ left: `${rapor}%` }}
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+                <div className="subject-row__bar-labels">
+                  <span className="subject-row__bar-label">
+                    Nilaimu: {s.nilai !== null ? s.nilai.toFixed(1) : "belum ada"}
+                  </span>
+                  <span
+                    className={`subject-row__bar-label ${ui.deficit ? "subject-row__bar-label--amber" : "subject-row__bar-label--brand"}`}
+                  >
+                    {selisih !== null
+                      ? `Selisih: ${selisih >= 0 ? "+" : ""}${selisih.toFixed(1)} dari rata-rata`
+                      : "—"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </article>
   );
@@ -535,37 +518,88 @@ function GapAnalysisSection() {
 
 // ── Action Plan Section ───────────────────────────────────────────────────────
 
-function ActionPlanSection() {
+function ActionPlanSection({ data, baris }: { data: AnalitikData; baris: BarisMapel[] }) {
+  const langkah: { title: string; desc: string; footer: string; tone: "brand" | "muted" | "amber" }[] = [];
+
+  for (const b of [...baris].filter((x) => x.status === "kurang").sort((a, b) => (a.nilai ?? 0) - (b.nilai ?? 0))) {
+    langkah.push({
+      title: `Tingkatkan Nilai ${b.nama}`,
+      desc: `Nilai terakhirmu ${b.nilai?.toFixed(1)} masih di bawah rata-rata rapormu, padahal mapel ini pendukung ${data.prodi?.nama}.`,
+      footer: "Prioritas tinggi",
+      tone: "amber",
+    });
+  }
+  for (const b of baris.filter((x) => !x.diambil)) {
+    langkah.push({
+      title: `Pertimbangkan Mapel ${b.nama}`,
+      desc: `${b.nama} adalah mapel pendukung prodi target tetapi belum tercatat sebagai mapel yang kamu ambil.`,
+      footer: "Diskusikan dengan BK",
+      tone: "muted",
+    });
+  }
+  if (!data.asesmen) {
+    langkah.push({
+      title: "Kerjakan Tes Minat RIASEC",
+      desc: "Hasil tes minat dibutuhkan untuk menilai kecocokan prodi target dengan profil minatmu.",
+      footer: "Buka menu Tes Minat",
+      tone: "brand",
+    });
+  }
+  if (data.target.karir.length === 0) {
+    langkah.push({
+      title: "Simpan Karir Impian",
+      desc: "Pilih karir impian di Eksplorasi Karir agar keselarasan prodi dan karir bisa dianalisis.",
+      footer: "Buka Eksplorasi Karir",
+      tone: "brand",
+    });
+  }
+  if (langkah.length === 0) {
+    langkah.push({
+      title: "Pertahankan Konsistensi Nilai",
+      desc: "Semua mapel pendukung sudah sejajar atau di atas rata-rata rapormu. Pertahankan hingga semester akhir.",
+      footer: "Terus pantau",
+      tone: "brand",
+    });
+  }
+
   return (
     <article className="section-card" aria-labelledby="action-plan-title">
-      {/* Header */}
       <div className="sc-header">
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span className="sc-icon-box sc-icon-box--circle" aria-hidden="true">
             <IconCalendar size={16} color="#FFFFFF" />
           </span>
           <div>
-            <h2 className="sc-header__title" id="action-plan-title">Rencana Aksi Semester 5</h2>
+            <h2 className="sc-header__title" id="action-plan-title">Rencana Aksi</h2>
             <p className="sc-header__subtitle">
-              Strategi terstruktur untuk menutup gap nilai dan memperkuat posisi rasionalisasi SNBP
+              Disusun otomatis dari kesenjangan mapel pendukung dan kelengkapan datamu
             </p>
           </div>
         </div>
       </div>
 
-      {/* 3-column action cards */}
       <div className="action-plan-grid">
-        {ACTION_PLANS.map((plan, idx) => (
-          <div key={idx} className="action-plan-card">
+        {langkah.slice(0, 3).map((plan, idx) => (
+          <div key={plan.title} className="action-plan-card">
             <div className="action-plan-card__body">
-              <span className={`action-plan-card__tag ${plan.tagClass}`}>{plan.tag}</span>
+              <span className={`action-plan-card__tag action-plan-card__tag--${plan.tone}`}>
+                LANGKAH {idx + 1}
+              </span>
               <h3 className="action-plan-card__title">{plan.title}</h3>
               <p className="action-plan-card__desc">{plan.desc}</p>
             </div>
             <div className="action-plan-card__footer">
-              <span aria-hidden="true">{plan.footerIcon}</span>
-              <span className={`action-plan-card__footer-text ${plan.footerClass}`}>
-                {plan.footerText}
+              <span aria-hidden="true">
+                {plan.tone === "amber" ? (
+                  <IconAlertTriangle size={14} color="#7C5400" />
+                ) : plan.tone === "muted" ? (
+                  <IconChevronRight size={5} color="#525E7E" />
+                ) : (
+                  <IconCheckCircle size={13} color="#006190" />
+                )}
+              </span>
+              <span className={`action-plan-card__footer-text action-plan-card__footer-text--${plan.tone}`}>
+                {plan.footer}
               </span>
             </div>
           </div>
@@ -577,66 +611,91 @@ function ActionPlanSection() {
 
 // ── Inline SVG Line Chart ─────────────────────────────────────────────────────
 
-function NilaiKonsistensiChart() {
-  // Build SVG path from chart points
-  // viewBox: 0 0 428 180, chart area x: 65..420, y: 20..160
-  const pts = [
-    { x: 65, y: 116, val: "88.5", sem: "Semester 1" },
-    { x: 164, y: 83, val: "90.2", sem: "Semester 2" },
-    { x: 263, y: 51, val: "92.4", sem: "Semester 3" },
-    { x: 362, y: 28, val: "94.1", sem: "Semester 4" },
-  ];
+function NilaiKonsistensiChart({ data }: { data: AnalitikData }) {
+  const idPendukung = new Set(data.prodi?.mapel_pendukung.map((m) => m.mapel.id) ?? []);
+  let tren = trenSemester(data.nilai, idPendukung.size ? idPendukung : null);
+  let lingkup = "Rata-rata nilai mapel pendukung prodi target";
+  if (tren.length === 0) {
+    tren = trenSemester(data.nilai, null);
+    lingkup = "Rata-rata nilai semua mapel";
+  }
+
+  if (tren.length === 0) {
+    return (
+      <article className="section-card chart-section" aria-labelledby="chart-title">
+        <div className="sc-header">
+          <div className="sc-header__left">
+            <h2 className="sc-header__title" id="chart-title">Tren Nilai Rapor</h2>
+            <p className="sc-header__subtitle">Belum ada nilai rapor yang diinput.</p>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  // viewBox: 0 0 428 180, area grafik x: 65..380, y: 20..140
+  const vals = tren.map((t) => t.val);
+  const min = Math.floor(Math.min(...vals) - 2);
+  const max = Math.ceil(Math.max(...vals) + 2);
+  const yOf = (v: number) => 140 - ((v - min) / (max - min || 1)) * 120;
+  const pts = tren.map((t, i) => ({
+    x: tren.length === 1 ? 220 : 65 + (i * 315) / (tren.length - 1),
+    y: yOf(t.val),
+    val: t.val.toFixed(1),
+    sem: `Semester ${t.sem}`,
+  }));
+  const ticks = [0, 1, 2, 3].map((i) => min + ((max - min) * (3 - i)) / 3);
 
   const lineD = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
   const areaD = `${lineD} L ${pts[pts.length - 1].x} 155 L ${pts[0].x} 155 Z`;
+  const delta = vals[vals.length - 1] - vals[0];
+  const naik = delta >= 0;
 
   return (
     <article className="section-card chart-section" aria-labelledby="chart-title">
-      {/* Header */}
       <div className="sc-header">
         <div className="sc-header__left">
-          <h2 className="sc-header__title" id="chart-title">Tren Nilai Rapor (Sem 1 - 4)</h2>
-          <p className="sc-header__subtitle">Rata-rata nilai kumulatif Mapel Pendukung SNBP</p>
+          <h2 className="sc-header__title" id="chart-title">
+            Tren Nilai Rapor (Sem {tren[0].sem} - {tren[tren.length - 1].sem})
+          </h2>
+          <p className="sc-header__subtitle">{lingkup}</p>
         </div>
-        <span className="chart-badge">+6.3% Linear</span>
+        {tren.length > 1 && (
+          <span className="chart-badge">
+            {naik ? "+" : ""}
+            {delta.toFixed(1)} poin
+          </span>
+        )}
       </div>
 
-      {/* SVG Chart */}
-      <div className="chart-svg-wrap" role="img" aria-label="Grafik tren nilai semester 1 sampai 4, menunjukkan peningkatan dari 88.5 ke 94.1">
+      <div
+        className="chart-svg-wrap"
+        role="img"
+        aria-label={`Grafik tren nilai: ${tren.map((t) => `semester ${t.sem} ${t.val.toFixed(1)}`).join(", ")}`}
+      >
         <svg viewBox="0 0 428 180" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-          {/* Grid lines */}
-          {[20, 60, 100, 140].map((y) => (
-            <line key={y} x1="65" y1={y} x2="420" y2={y} stroke="rgba(0,97,144,0.08)" strokeWidth="1" strokeDasharray="4 4" />
+          {ticks.map((v) => (
+            <g key={v}>
+              <line x1="65" y1={yOf(v)} x2="420" y2={yOf(v)} stroke="rgba(0,97,144,0.08)" strokeWidth="1" strokeDasharray="4 4" />
+              <text x="8" y={yOf(v) + 5} fontFamily="Plus Jakarta Sans" fontSize="10" fill="#3F4850">
+                {v.toFixed(0)}
+              </text>
+            </g>
           ))}
 
-          {/* Y-axis labels */}
-          {[
-            { y: 20, label: "96" },
-            { y: 60, label: "93" },
-            { y: 100, label: "90" },
-            { y: 140, label: "87" },
-          ].map((item) => (
-            <text key={item.y} x="8" y={item.y + 5} fontFamily="Plus Jakarta Sans" fontSize="10" fill="#3F4850">
-              {item.label}
-            </text>
-          ))}
-
-          {/* Area gradient */}
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#006190" stopOpacity="0.25" />
               <stop offset="100%" stopColor="#006190" stopOpacity="0" />
             </linearGradient>
           </defs>
-          <path d={areaD} fill="url(#areaGrad)" />
+          {pts.length > 1 && <path d={areaD} fill="url(#areaGrad)" />}
+          {pts.length > 1 && (
+            <path d={lineD} stroke="#006190" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          )}
 
-          {/* Line */}
-          <path d={lineD} stroke="#006190" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-
-          {/* Data points + labels */}
           {pts.map((p, i) => (
-            <g key={i}>
-              {/* X-axis semester label */}
+            <g key={p.sem}>
               <text
                 x={p.x}
                 y="170"
@@ -648,15 +707,11 @@ function NilaiKonsistensiChart() {
               >
                 {p.sem}
               </text>
-
-              {/* Point */}
               {i < pts.length - 1 ? (
                 <circle cx={p.x} cy={p.y} r="6" fill="#FFFFFF" stroke="#006190" strokeWidth="3" />
               ) : (
                 <circle cx={p.x} cy={p.y} r="7" fill="#006190" stroke="#FFFFFF" strokeWidth="2" />
               )}
-
-              {/* Value label */}
               <text
                 x={p.x}
                 y={p.y - 12}
@@ -673,13 +728,13 @@ function NilaiKonsistensiChart() {
         </svg>
       </div>
 
-      {/* Insight strip */}
       <div className="chart-insight">
         <span className="chart-insight__text">
-          Tren nilai stabil meningkat. Proyeksi Semester 5:
+          {tren.length > 1 ? (naik ? "Tren nilai meningkat." : "Tren nilai menurun.") : "Baru ada satu semester."}
         </span>
         <span className="chart-insight__strong">
-          Nilai 95.5 (Optimal untuk Informatika)
+          {naik ? <IconTrendUp size={13} color="#006190" /> : <IconTrendDown size={13} color="#7C5400" />}{" "}
+          Terakhir: {vals[vals.length - 1].toFixed(1)}
         </span>
       </div>
     </article>
@@ -688,10 +743,9 @@ function NilaiKonsistensiChart() {
 
 // ── Career Map Section ────────────────────────────────────────────────────────
 
-function CareerMapSection() {
+function CareerMapSection({ karir, teksBebas }: { karir: DetailKarir | null; teksBebas: string | null }) {
   return (
     <article className="section-card" aria-labelledby="career-title">
-      {/* Header */}
       <div className="sc-header">
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{
@@ -702,63 +756,69 @@ function CareerMapSection() {
           </span>
           <h2 className="sc-header__title" id="career-title">Peta Karir Impian</h2>
         </div>
-        <span style={{
-          padding: "2px 10px", background: "#D9E2FF", borderRadius: 9999,
-          fontSize: 11, fontWeight: 700, letterSpacing: "0.44px", color: "#0D1A37", whiteSpace: "nowrap"
-        }}>
-          High Demand 2030
-        </span>
+        {karir?.is_trending && (
+          <span style={{
+            padding: "2px 10px", background: "#D9E2FF", borderRadius: 9999,
+            fontSize: 11, fontWeight: 700, letterSpacing: "0.44px", color: "#0D1A37", whiteSpace: "nowrap"
+          }}>
+            Trending
+          </span>
+        )}
       </div>
 
-      {/* Banner image-like area */}
-      <div className="career-banner" aria-label="Artificial Intelligence Engineer career banner">
-        <div className="career-banner__bg" aria-hidden="true" />
-        <div className="career-banner__overlay" aria-hidden="true" />
-        <div className="career-banner__content">
-          <h3 className="career-banner__title">Artificial Intelligence Engineer</h3>
-          <p className="career-banner__sub">
-            Spesialis Algoritma Pembelajaran Mesin &amp; Pemodelan Data Komputasi
-          </p>
-        </div>
-      </div>
-
-      {/* Metric highlights */}
-      <div className="career-metrics">
-        <div className="career-metric-box">
-          <div className="career-metric-box__label">Potensi Pendapatan Awal</div>
-          <div style={{ marginTop: 4 }}>
-            <span className="career-metric-box__value">Rp 10–20</span>
-            <span className="career-metric-box__unit"> jt/bln</span>
+      {!karir ? (
+        <p className="sc-header__subtitle">
+          {teksBebas ? `Karir impianmu: ${teksBebas} (belum terhubung ke katalog). ` : "Kamu belum menyimpan karir impian. "}
+          <Link href="/eksplorasi-karir">Cari di Eksplorasi Karir</Link>
+        </p>
+      ) : (
+        <>
+          <div className="career-banner" aria-label={`Banner karir ${karir.nama}`}>
+            <div className="career-banner__bg" aria-hidden="true" />
+            <div className="career-banner__overlay" aria-hidden="true" />
+            <div className="career-banner__content">
+              <h3 className="career-banner__title">{karir.nama}</h3>
+              <p className="career-banner__sub">{karir.bidang_karir?.nama ?? "Bidang karir -"}</p>
+            </div>
           </div>
-        </div>
-        <div className="career-metric-box">
-          <div className="career-metric-box__label">Peluang Pertumbuhan</div>
-          <div style={{ marginTop: 4 }}>
-            <span className="career-metric-box__value">+38%</span>
-            <span className="career-metric-box__unit"> /thn</span>
-          </div>
-        </div>
-      </div>
 
-      {/* Skill stack chips */}
-      <div>
-        <p className="skill-chips-label">Skill Stack yang Dibutuhkan:</p>
-        <div className="skill-chips">
-          {SKILL_CHIPS.map((chip) => (
-            <span key={chip} className="skill-chip">{chip}</span>
-          ))}
-        </div>
-      </div>
+          <div className="career-metrics">
+            <div className="career-metric-box">
+              <div className="career-metric-box__label">Kode RIASEC</div>
+              <div style={{ marginTop: 4 }}>
+                <span className="career-metric-box__value">{karir.kode_riasec ?? "-"}</span>
+              </div>
+            </div>
+            <div className="career-metric-box">
+              <div className="career-metric-box__label">Prodi Relevan</div>
+              <div style={{ marginTop: 4 }}>
+                <span className="career-metric-box__value">{karir.prodi_relevan.length}</span>
+                <span className="career-metric-box__unit"> prodi</span>
+              </div>
+            </div>
+          </div>
+
+          {karir.prodi_relevan.length > 0 && (
+            <div>
+              <p className="skill-chips-label">Prodi yang Mengarah ke Karir Ini:</p>
+              <div className="skill-chips">
+                {karir.prodi_relevan.map((p) => (
+                  <span key={p.id} className="skill-chip">{p.nama}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </article>
   );
 }
 
 // ── BK Teacher Validation ─────────────────────────────────────────────────────
 
-function BKValidationSection() {
+function BKValidationSection({ sekolah }: { sekolah: string | null }) {
   return (
     <article className="section-card" aria-labelledby="bk-section-title">
-      {/* Header */}
       <div className="sc-header">
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span className="sc-icon-box sc-icon-box--circle" aria-hidden="true">
@@ -768,49 +828,19 @@ function BKValidationSection() {
             <h2 className="sc-header__title" id="bk-section-title">
               Catatan &amp; Validasi Guru Pembimbing BK
             </h2>
-            <p className="sc-header__subtitle">Bimbingan Konseling &amp; Kepercayaan PNBP</p>
+            <p className="sc-header__subtitle">{sekolah ?? "Belum terhubung ke sekolah"}</p>
           </div>
         </div>
-        <span className="bk-verified-badge">
-          <IconCheck size={9} color="#006190" />
-          Divalidasi
-        </span>
       </div>
 
-      {/* Quote box */}
       <div className="bk-quote-box">
-        {/* Watermark */}
         <div className="bk-quote-box__watermark" aria-hidden="true">
           <IconQuote size={34} color="#D3E4FE" />
         </div>
-
-        {/* Quote text */}
         <blockquote className="bk-quote-text">
-          &ldquo;Citra menunjukkan stabilitas nilai matematika dan algoritma yang luar biasa sejak semester 1. Pilihan target S1 Teknik Informatika di UI/ITB sangat rasional dengan catatan Citra fokus menutup gap 3 poin nilai Bahasa Inggris di semester 5. Kami menyetujui Citra masuk dalam slot 1 pendaftar Informatika dari sekolah.&rdquo;
+          Belum ada catatan dari Guru BK. Catatan dan validasi akan tampil di sini setelah
+          Guru BK meninjau target prodimu.
         </blockquote>
-      </div>
-
-      {/* Teacher info row */}
-      <div className="bk-teacher-row">
-        <div className="bk-teacher">
-          {/* Avatar */}
-          <div className="bk-teacher__avatar" aria-label="Foto Dra. Sica Anggraini M.Pd">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <circle cx="14" cy="11" r="6" fill="#CBE6FF" />
-              <ellipse cx="14" cy="25" rx="11" ry="7" fill="#CBE6FF" />
-              <circle cx="14" cy="11" r="4" fill="#006190" opacity="0.25" />
-            </svg>
-          </div>
-          <div className="bk-teacher__info">
-            <span className="bk-teacher__name">Dra. Sica Anggraini, M.Pd</span>
-            <span className="bk-teacher__title">Koordinator BK SMAN 8 Jakarta</span>
-          </div>
-        </div>
-
-        {/* Validated timestamp */}
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.44px", color: "#3F4850" }}>
-          Validated: 11 Oct 2024
-        </span>
       </div>
     </article>
   );
@@ -892,44 +922,89 @@ function SiteFooter() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AnalitikPage() {
+  const [data, setData] = useState<AnalitikData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let batal = false;
+    (async () => {
+      const [me, asesmen, nilai, target] = await Promise.all([
+        getMe(),
+        terakhirAsesmen(),
+        daftarNilai(),
+        getTarget(),
+      ]);
+      const utama = target.prodi.find((t) => t.is_utama) ?? target.prodi[0];
+      const karirId = target.karir.find((k) => k.karir)?.karir?.id;
+      const [prodi, karir] = await Promise.all([
+        utama?.prodi ? detailProdi(utama.prodi.id) : null,
+        karirId ? detailKarir(karirId) : null,
+      ]);
+      if (!batal) setData({ me, asesmen, nilai, target, prodi, karir });
+    })().catch((err) => !batal && setError(pesanError(err)));
+    return () => {
+      batal = true;
+    };
+  }, []);
+
+  const rapor = data ? rataRapor(data.nilai) : null;
+  const baris = useMemo(() => (data ? barisMapel(data.prodi, data.me, rapor) : []), [data, rapor]);
+
   return (
     <div className="page-analitik">
-      {/* Header */}
-      <SiteHeader />
+      <SiteHeader nama={data?.me.profil.nama ?? "Siswa"} kelas={infoKelas(data?.me ?? null)} />
 
-      {/* Main */}
       <main className="ak-main" id="main-content">
         <div className="ak-container">
+          {!data && (
+            <p className="sc-header__subtitle" role={error ? "alert" : "status"}>
+              {error ?? "Memuat analisis keselarasan..."}
+            </p>
+          )}
 
-          {/* 1. Target overview hero card */}
-          <TargetHeroCard />
+          {data && !data.prodi && (
+            <section className="section-card">
+              <h1 className="sc-header__title">Belum ada target prodi</h1>
+              <p className="sc-header__subtitle">
+                Analisis keselarasan membandingkan nilai dan minatmu dengan target prodi utama.
+                Pilih target dulu dari <Link href="/rekomendasi">Rekomendasi</Link> atau{" "}
+                <Link href="/katalog-prodi">Katalog Prodi</Link>.
+              </p>
+            </section>
+          )}
 
-          {/* 2. 4 Quick metrics */}
-          <QuickMetrics />
+          {data?.prodi && (
+            <>
+              {/* 1. Target overview hero card */}
+              <TargetHeroCard data={data} />
 
-          {/* 3. Sticky Action Bar */}
-          <ActionBar />
+              {/* 2. 4 Quick metrics */}
+              <QuickMetrics data={data} baris={baris} />
 
-          {/* 4. Two-column main grid */}
-          <div className="ak-grid">
-            {/* Left column */}
-            <div className="ak-col-left">
-              <GapAnalysisSection />
-              <ActionPlanSection />
-            </div>
+              {/* 3. Sticky Action Bar */}
+              <ActionBar data={data} />
 
-            {/* Right column */}
-            <div className="ak-col-right">
-              <NilaiKonsistensiChart />
-              <CareerMapSection />
-              <BKValidationSection />
-            </div>
-          </div>
+              {/* 4. Two-column main grid */}
+              <div className="ak-grid">
+                <div className="ak-col-left">
+                  <GapAnalysisSection baris={baris} rapor={rapor} />
+                  <ActionPlanSection data={data} baris={baris} />
+                </div>
 
+                <div className="ak-col-right">
+                  <NilaiKonsistensiChart data={data} />
+                  <CareerMapSection
+                    karir={data.karir}
+                    teksBebas={data.target.karir.find((k) => k.teks_bebas)?.teks_bebas ?? null}
+                  />
+                  <BKValidationSection sekolah={data.me.profil.sekolah?.nama ?? null} />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </main>
 
-      {/* Footer */}
       <SiteFooter />
     </div>
   );

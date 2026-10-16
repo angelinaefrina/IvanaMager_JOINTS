@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 
-// Root: redirect sesuai role pengguna
+/**
+ * Root page: proxy.ts sudah me-redirect "/" sesuai peran (dari backend GET /me).
+ * Page ini hanya fallback bila proxy tidak sempat menentukan peran.
+ */
 export default function RootPage() {
-  // TODO: Periksa sesi & role pengguna (siswa -> /beranda, bk -> /bk/dashboard, unauthenticated -> /login)
   redirect("/beranda");
 }

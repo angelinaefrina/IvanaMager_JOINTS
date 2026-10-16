@@ -1,12 +1,11 @@
-export default async function DetailKarirPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+import { Suspense } from "react";
+import { RedirectKarir } from "./RedirectKarir";
+
+// Detail karir ditampilkan di halaman eksplorasi (?id=), jadi rute ini hanya meneruskan.
+export default function DetailKarirPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Detail Karir: {id}</h1>
-    </div>
+    <Suspense fallback={null}>
+      <RedirectKarir />
+    </Suspense>
   );
 }
