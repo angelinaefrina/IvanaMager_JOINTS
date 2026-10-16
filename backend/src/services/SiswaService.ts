@@ -144,9 +144,10 @@ export const SiswaService = {
       // null = siswa belum pernah menyimpan profil (login pertama -> tampilkan onboarding)
       siswa,
       preferensi,
-      mapel,
-      mapel_favorit: mapelFavorit,
-      bidang_karir: bidangKarir,
+      // dibungkus { mapel } / { bidang_karir } sesuai kontrak FE (SiswaSaya)
+      mapel: mapel.map((m) => ({ mapel: m })),
+      mapel_favorit: mapelFavorit.map((m) => ({ mapel: m })),
+      bidang_karir: bidangKarir.map((b) => ({ bidang_karir: b })),
       target_karir: targetKarir,
       kelengkapan: { lengkap: kurang.length === 0, kurang },
     };
