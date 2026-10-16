@@ -12,6 +12,11 @@ export const ProfilModel = {
     return data;
   },
 
+  async update(id: string, fields: { nama?: string | null; sekolah_id?: string | null }) {
+    const { error } = await supabase.from('profil').update(fields).eq('id', id);
+    throwIfSupabaseError(error);
+  },
+
   /** Query paling ringan untuk healthcheck koneksi DB. */
   async ping() {
     const { error } = await supabase
