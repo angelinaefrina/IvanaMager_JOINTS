@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as kode from '../controllers/kodeBk.controller';
 import * as nilai from '../controllers/nilaiRapor.controller';
+import * as rek from '../controllers/rekomendasi.controller';
 import { auth } from '../middleware/auth';
 import { requireRole } from '../middleware/requireRole';
 
@@ -18,3 +19,9 @@ bkRouter.get('/nilai/template', nilai.template);
 bkRouter.post('/nilai/impor', nilai.impor);
 bkRouter.get('/siswa/:siswaId/nilai', nilai.nilaiSiswa);
 bkRouter.post('/siswa/:siswaId/nilai/verifikasi', nilai.putuskan);
+
+bkRouter.get('/siswa/:siswaId/rekomendasi/prodi', rek.rekomendasi('prodi'));
+bkRouter.get('/siswa/:siswaId/rekomendasi/mapel', rek.rekomendasi('mapel'));
+bkRouter.get('/siswa/:siswaId/rekomendasi/jenjang', rek.rekomendasi('jenjang'));
+bkRouter.get('/siswa/:siswaId/keselarasan', rek.rekomendasi('keselarasan'));
+bkRouter.post('/siswa/:siswaId/rekomendasi/:jenis/penjelasan', rek.penjelasan);
