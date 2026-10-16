@@ -1,6 +1,13 @@
-import type { RequestHandler } from 'express';
+import type { Request, RequestHandler } from 'express';
 import { supabase } from '../config/supabase';
+import type { AuthUser } from '../types/express';
 import { AppError, throwIfSupabaseError } from './errorHandler';
+
+/** Ambil req.user di handler yang dipasang setelah `auth`. */
+export function userOf(req: Request): AuthUser {
+  if (!req.user) throw AppError.unauthorized();
+  return req.user;
+}
 
 /**
  * Verifikasi `Authorization: Bearer <access_token>` Supabase, lalu ambil peran

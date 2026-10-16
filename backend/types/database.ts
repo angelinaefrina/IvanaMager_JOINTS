@@ -489,6 +489,51 @@ export type Database = {
           },
         ]
       }
+      kode_bk: {
+        Row: {
+          aktif: boolean
+          berlaku_sampai: string | null
+          created_at: string
+          dibuat_oleh: string | null
+          id: string
+          kode: string
+          sekolah_id: string
+        }
+        Insert: {
+          aktif?: boolean
+          berlaku_sampai?: string | null
+          created_at?: string
+          dibuat_oleh?: string | null
+          id?: string
+          kode: string
+          sekolah_id: string
+        }
+        Update: {
+          aktif?: boolean
+          berlaku_sampai?: string | null
+          created_at?: string
+          dibuat_oleh?: string | null
+          id?: string
+          kode?: string
+          sekolah_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kode_bk_dibuat_oleh_fkey"
+            columns: ["dibuat_oleh"]
+            isOneToOne: false
+            referencedRelation: "profil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kode_bk_sekolah_id_fkey"
+            columns: ["sekolah_id"]
+            isOneToOne: false
+            referencedRelation: "sekolah"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mapel: {
         Row: {
           id: number
@@ -1402,65 +1447,111 @@ export type Database = {
           },
         ]
       }
-      target_siswa: {
+      target_karir: {
         Row: {
           created_at: string
           id: string
-          is_utama: boolean
           karir_id: string | null
-          prodi_id: string | null
           siswa_id: string
+          sumber: Database["public"]["Enums"]["sumber_target"]
           teks_bebas: string | null
         }
         Insert: {
           created_at?: string
           id?: string
-          is_utama?: boolean
           karir_id?: string | null
-          prodi_id?: string | null
           siswa_id: string
+          sumber: Database["public"]["Enums"]["sumber_target"]
           teks_bebas?: string | null
         }
         Update: {
           created_at?: string
           id?: string
-          is_utama?: boolean
           karir_id?: string | null
-          prodi_id?: string | null
           siswa_id?: string
+          sumber?: Database["public"]["Enums"]["sumber_target"]
           teks_bebas?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "target_siswa_karir_id_fkey"
+            foreignKeyName: "target_karir_karir_id_fkey"
             columns: ["karir_id"]
             isOneToOne: false
             referencedRelation: "karir"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "target_siswa_prodi_id_fkey"
-            columns: ["prodi_id"]
-            isOneToOne: false
-            referencedRelation: "prodi"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "target_siswa_siswa_id_fkey"
+            foreignKeyName: "target_karir_siswa_id_fkey"
             columns: ["siswa_id"]
             isOneToOne: false
             referencedRelation: "siswa"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "target_siswa_siswa_id_fkey"
+            foreignKeyName: "target_karir_siswa_id_fkey"
             columns: ["siswa_id"]
             isOneToOne: false
             referencedRelation: "v_fitur_siswa"
             referencedColumns: ["siswa_id"]
           },
           {
-            foreignKeyName: "target_siswa_siswa_id_fkey"
+            foreignKeyName: "target_karir_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "v_status_siswa"
+            referencedColumns: ["siswa_id"]
+          },
+        ]
+      }
+      target_prodi: {
+        Row: {
+          created_at: string
+          id: string
+          is_utama: boolean
+          prodi_id: string
+          siswa_id: string
+          sumber: Database["public"]["Enums"]["sumber_target"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_utama?: boolean
+          prodi_id: string
+          siswa_id: string
+          sumber: Database["public"]["Enums"]["sumber_target"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_utama?: boolean
+          prodi_id?: string
+          siswa_id?: string
+          sumber?: Database["public"]["Enums"]["sumber_target"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "target_prodi_prodi_id_fkey"
+            columns: ["prodi_id"]
+            isOneToOne: false
+            referencedRelation: "prodi"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "target_prodi_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "siswa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "target_prodi_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "v_fitur_siswa"
+            referencedColumns: ["siswa_id"]
+          },
+          {
+            foreignKeyName: "target_prodi_siswa_id_fkey"
             columns: ["siswa_id"]
             isOneToOne: false
             referencedRelation: "v_status_siswa"
@@ -1673,6 +1764,23 @@ export type Database = {
           },
         ]
       }
+      v_ringkasan_karir_angkatan: {
+        Row: {
+          angkatan: number | null
+          bidang_karir: string | null
+          jumlah: number | null
+          sekolah_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profil_sekolah_id_fkey"
+            columns: ["sekolah_id"]
+            isOneToOne: false
+            referencedRelation: "sekolah"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_ringkasan_mapel_angkatan: {
         Row: {
           angkatan: number | null
@@ -1761,6 +1869,11 @@ export type Database = {
       status_verifikasi: "menunggu" | "terverifikasi" | "ditolak"
       sumber_data: "survei" | "sintetis"
       sumber_nilai: "input_siswa" | "impor_bk"
+      sumber_target:
+        | "onboarding"
+        | "eksplorasi_karir"
+        | "rekomendasi"
+        | "katalog"
       tipe_riasec: "R" | "I" | "A" | "S" | "E" | "C"
     }
     CompositeTypes: {
@@ -1910,6 +2023,12 @@ export const Constants = {
       status_verifikasi: ["menunggu", "terverifikasi", "ditolak"],
       sumber_data: ["survei", "sintetis"],
       sumber_nilai: ["input_siswa", "impor_bk"],
+      sumber_target: [
+        "onboarding",
+        "eksplorasi_karir",
+        "rekomendasi",
+        "katalog",
+      ],
       tipe_riasec: ["R", "I", "A", "S", "E", "C"],
     },
   },

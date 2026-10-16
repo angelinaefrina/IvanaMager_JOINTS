@@ -6,6 +6,8 @@ export class AppError extends Error {
     public readonly status: number,
     public readonly code: string,
     message: string,
+    /** Rincian opsional untuk klien, mis. daftar error per baris impor. */
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'AppError';
@@ -22,6 +24,9 @@ export class AppError extends Error {
   }
   static notFound(message = 'Data tidak ditemukan', code = 'NOT_FOUND') {
     return new AppError(404, code, message);
+  }
+  static conflict(message = 'Konflik dengan data yang ada', code = 'CONFLICT') {
+    return new AppError(409, code, message);
   }
 }
 
@@ -54,7 +59,8 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   }
 
   if (err instanceof AppError && err.status < 500) {
-    res.status(err.status).json({ error: { code: err.code, message: err.message } });
+    const details = err.details === undefined ? {} : { details: err.details };
+    res.status(err.status).json({ error: { code: err.code, message: err.message, ...details } });
     return;
   }
 
