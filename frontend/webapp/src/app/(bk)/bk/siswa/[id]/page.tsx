@@ -119,13 +119,12 @@ export default function BkDetailSiswaPage() {
             <span className="bks-nav-item active">
               Detail Siswa &amp; Konseling
             </span>
-            <button
-              type="button"
+            <Link
+              href="/bk/nilai-rapor"
               className="bks-nav-item inactive"
-              onClick={() => setActiveModal("Impor Nilai Massal")}
             >
               Impor Nilai Massal
-            </button>
+            </Link>
             <button
               type="button"
               className="bks-nav-item inactive"

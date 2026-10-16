@@ -272,13 +272,12 @@ export default function BkDashboardPage() {
             >
               Detail Siswa &amp; Konseling
             </Link>
-            <button
-              type="button"
+            <Link
+              href="/bk/nilai-rapor"
               className="bk-nav-item inactive"
-              onClick={() => setActiveModal("Impor Nilai Massal")}
             >
               Impor Nilai Massal
-            </button>
+            </Link>
             <button
               type="button"
               className="bk-nav-item inactive"
@@ -353,14 +352,13 @@ export default function BkDashboardPage() {
 
           {/* Quick Action Buttons */}
           <div className="bk-quick-actions">
-            <button
-              type="button"
+            <Link
+              href="/bk/nilai-rapor"
               className="bk-btn-secondary"
-              onClick={() => setActiveModal("Impor Nilai Rapor")}
             >
               <IconUpload size={14} color="#006190" />
               <span>Impor Nilai Rapor</span>
-            </button>
+            </Link>
             <button
               type="button"
               className="bk-btn-secondary"
