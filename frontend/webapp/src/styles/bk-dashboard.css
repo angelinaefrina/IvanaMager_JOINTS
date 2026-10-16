@@ -865,10 +865,24 @@
   gap: 6px;
 }
 
+.bk-student-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.bk-student-cell:hover .bk-student-name {
+  color: #006190;
+  text-decoration: underline;
+}
+
 .bk-student-name {
   font-weight: 700;
   font-size: 14.5px;
   color: #0B1C30;
+  transition: color 0.15s ease;
 }
 
 .bk-badge-risk {
