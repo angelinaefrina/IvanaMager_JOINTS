@@ -278,13 +278,12 @@ export default function BkDashboardPage() {
             >
               Impor Nilai Massal
             </Link>
-            <button
-              type="button"
+            <Link
+              href="/bk/ringkasan"
               className="bk-nav-item inactive"
-              onClick={() => setActiveModal("Ringkasan Angkatan")}
             >
               Ringkasan Angkatan
-            </button>
+            </Link>
           </nav>
 
           {/* Right Section: Quick Search, Bell, Profile */}

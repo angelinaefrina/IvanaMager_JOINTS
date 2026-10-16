@@ -125,13 +125,12 @@ export default function BkDetailSiswaPage() {
             >
               Impor Nilai Massal
             </Link>
-            <button
-              type="button"
+            <Link
+              href="/bk/ringkasan"
               className="bks-nav-item inactive"
-              onClick={() => setActiveModal("Ringkasan Angkatan")}
             >
               Ringkasan Angkatan
-            </button>
+            </Link>
           </nav>
 
           {/* Right Section: Quick Search, Bell, Counselor Profile */}
