@@ -16,6 +16,17 @@ export const TargetKarirModel = {
     return data ?? [];
   },
 
+  async findBySiswaKarir(siswaId: string, karirId: string) {
+    const { data, error } = await supabase
+      .from('target_karir')
+      .select('id, teks_bebas, sumber, created_at, karir(id, nama, bidang_karir_id)')
+      .eq('siswa_id', siswaId)
+      .eq('karir_id', karirId)
+      .maybeSingle();
+    throwIfSupabaseError(error);
+    return data;
+  },
+
   async insertMany(rows: TargetKarirInsert[]) {
     if (rows.length === 0) return;
     const { error } = await supabase.from('target_karir').insert(rows);

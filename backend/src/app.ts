@@ -5,6 +5,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { asesmenRouter } from './routes/asesmen.routes';
 import { bkRouter } from './routes/bk.routes';
 import { healthRouter } from './routes/health.routes';
+import { katalogRouter } from './routes/katalog.routes';
 import { masterRouter } from './routes/master.routes';
 import { meRouter } from './routes/me.routes';
 import { siswaRouter } from './routes/siswa.routes';
@@ -20,6 +21,7 @@ api.use('/health', healthRouter);
 api.use('/me', meRouter);
 api.use('/master', masterRouter);
 api.use('/asesmen', asesmenRouter);
+api.use('/katalog', katalogRouter);
 api.use('/siswa', siswaRouter);
 api.use('/bk', bkRouter);
 

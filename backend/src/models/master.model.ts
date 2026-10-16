@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
 import { throwIfSupabaseError } from '../middleware/errorHandler';
+import { polaMengandung } from './like';
 
 export const MasterModel = {
   async listMapel() {
@@ -19,10 +20,7 @@ export const MasterModel = {
 
   async cariKarir(q: string | undefined, limit: number) {
     let query = supabase.from('karir').select('id, nama, bidang_karir_id, is_trending');
-    if (q) {
-      // Escape wildcard LIKE agar input siswa diperlakukan sebagai teks biasa.
-      query = query.ilike('nama', `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
-    }
+    if (q) query = query.ilike('nama', polaMengandung(q));
     const { data, error } = await query.order('nama').limit(limit);
     throwIfSupabaseError(error);
     return data ?? [];
