@@ -32,7 +32,6 @@ import {
   IconBell,
   IconSearch,
   IconUser,
-  IconUpload,
   IconStar,
   IconBarChart,
   IconLayers,
@@ -625,31 +624,44 @@ function KolomRekomendasi({
 
 // ─── Section 3: Banner CTA ────────────────────────────────────────────────
 
-function BannerCTA() {
+const LANGKAH: Record<string, { judul: string; desc: string; href: string; cta: string }> = {
+  Profil: { judul: "Lengkapi Profil & Preferensi", desc: "Data kelas, peminatan, dan preferensi belajar dipakai untuk menyaring rekomendasi prodi.", href: "/onboarding", cta: "Lengkapi Profil" },
+  "Nilai Rapor": { judul: "Isi Nilai Rapor", desc: "Nilai rapor per semester menentukan kesiapan akademikmu untuk tiap prodi.", href: "/nilai-rapor", cta: "Isi Nilai Rapor" },
+  RIASEC: { judul: "Ikuti Tes Minat RIASEC", desc: "Kode Holland dari tes minat menjadi dasar kecocokan prodi dan karir.", href: "/tes-minat", cta: "Mulai Tes Minat" },
+  "Target Prodi": { judul: "Pilih Target Prodi", desc: "Simpan prodi incaran agar keselarasannya dengan nilai dan minatmu bisa dianalisis.", href: "/katalog-prodi", cta: "Jelajahi Katalog Prodi" },
+  "Karir Impian": { judul: "Tentukan Karir Impian", desc: "Karir impian membantu Guru BK memahami arah tujuanmu.", href: "/eksplorasi-karir", cta: "Eksplorasi Karir" },
+};
+
+function BannerCTA({ data }: { data: BerandaData }) {
+  const daftar = checklist(data);
+  const belum = daftar.filter((c) => !c.done);
+  const langkah = belum.length > 0 ? LANGKAH[belum[0].label] : null;
   return (
     <section className="banner-cta" aria-labelledby="banner-title">
       <div className="banner-cta__left">
         <span className="banner-cta__countdown">
           <IconClock size={12} color="#FFFFFF" />
-          Hitung Mundur: 42 Hari Menuju Penutupan Finalisasi SNBP 2025
+          {belum.length > 0
+            ? `${daftar.length - belum.length} dari ${daftar.length} langkah selesai`
+            : "Semua langkah selesai"}
         </span>
         <h2 className="banner-cta__title" id="banner-title">
-          Langkah Selanjutnya: Unggah Bukti Prestasi &amp; Sertifikat
+          {langkah ? `Langkah Selanjutnya: ${langkah.judul}` : "Data kamu sudah lengkap"}
         </h2>
         <p className="banner-cta__desc">
-          Tingkatkan skor rasionalisasimu hingga{" "}
-          <strong>+12 poin ekstra</strong> dengan menambahkan sertifikat OSN
-          Informatika tingkat Kota/Provinsi sebelum verifikasi PDSS sekolah ditutup.
+          {langkah
+            ? langkah.desc
+            : "Lihat analisis keselarasan target prodimu dan diskusikan hasilnya dengan Guru BK."}
         </p>
       </div>
       <div className="banner-cta__right">
-        <button className="btn-white-pill" type="button">
-          <IconUpload size={14} color="#006190" />
-          Unggah Sertifikat Lomba
-        </button>
-        <button className="btn-ghost-blue" type="button">
-          Cek Kalender Resmi SNPMB 2025
-        </button>
+        <Link className="btn-white-pill" href={langkah?.href ?? "/analitik"}>
+          <IconArrowRight size={14} color="#006190" />
+          {langkah?.cta ?? "Lihat Analisis Keselarasan"}
+        </Link>
+        <Link className="btn-ghost-blue" href="/rekomendasi">
+          Lihat Rekomendasi Prodi
+        </Link>
       </div>
     </section>
   );
@@ -792,7 +804,7 @@ export default function BerandaSiswaPage() {
           </section>
 
           {/* Section 3 — CTA Banner */}
-          <BannerCTA />
+          <BannerCTA data={data} />
         </div>
       </main>
 

@@ -54,6 +54,20 @@ function AuthComponent() {
 
   // Modal Dialogs State
   const [activeModal, setActiveModal] = useState<"help" | "forgot" | "status" | "privacy" | null>(null);
+  const [statusServer, setStatusServer] = useState<{ api: boolean; db: boolean; ms: number } | "memuat" | null>(null);
+
+  async function cekStatusServer() {
+    setActiveModal("status");
+    setStatusServer("memuat");
+    const mulai = performance.now();
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1"}/health`, { cache: "no-store" });
+      const json = await res.json();
+      setStatusServer({ api: res.ok, db: json?.data?.db === "ok", ms: Math.round(performance.now() - mulai) });
+    } catch {
+      setStatusServer({ api: false, db: false, ms: 0 });
+    }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -664,7 +678,7 @@ function AuthComponent() {
             <button
               type="button"
               className="auth-footer-link"
-              onClick={() => setActiveModal("status")}
+              onClick={cekStatusServer}
             >
               Status Server
             </button>
@@ -746,18 +760,22 @@ function AuthComponent() {
                   Status Layanan Server
                 </h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "#F0FDF4", borderRadius: "6px", color: "#15803D" }}>
-                    <span>Gateway SSO Dapodik</span>
-                    <strong>Online (42ms)</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "#F0FDF4", borderRadius: "6px", color: "#15803D" }}>
-                    <span>Engine Rekomendasi AI</span>
-                    <strong>Operasional Normal</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "#F0FDF4", borderRadius: "6px", color: "#15803D" }}>
-                    <span>Database Sinkronisasi</span>
-                    <strong>Terhubung (Enkripsi Aktif)</strong>
-                  </div>
+                  {statusServer === "memuat" || statusServer === null ? (
+                    <span style={{ color: "#475569" }}>Memeriksa server...</span>
+                  ) : (
+                    [
+                      ["Backend API", statusServer.api, statusServer.api ? `Online (${statusServer.ms}ms)` : "Tidak terjangkau"],
+                      ["Database", statusServer.db, statusServer.db ? "Terhubung" : "Tidak terhubung"],
+                    ].map(([label, ok, teks]) => (
+                      <div
+                        key={String(label)}
+                        style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", borderRadius: "6px", background: ok ? "#F0FDF4" : "#FEF2F2", color: ok ? "#15803D" : "#B91C1C" }}
+                      >
+                        <span>{label}</span>
+                        <strong>{teks}</strong>
+                      </div>
+                    ))
+                  )}
                 </div>
               </>
             )}
