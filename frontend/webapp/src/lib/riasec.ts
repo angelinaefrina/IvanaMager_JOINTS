@@ -50,6 +50,21 @@ export function infoKelas(me: SiswaSaya | null) {
     .join(" ");
 }
 
+/** Label ramah untuk prasyarat rekomendasi yang belum dipenuhi (field `kurang`). */
+export const LABEL_KURANG: Record<string, { label: string; href: string }> = {
+  profil: { label: "Lengkapi profil (onboarding)", href: "/onboarding" },
+  tes_minat: { label: "Kerjakan tes minat RIASEC", href: "/tes-minat" },
+  nilai_rapor: { label: "Isi nilai rapor", href: "/nilai-rapor" },
+  preferensi_pendidikan: { label: "Isi preferensi pendidikan", href: "/onboarding" },
+  target_prodi_utama: { label: "Pilih target prodi utama", href: "/katalog-prodi" },
+  katalog: { label: "Katalog prodi belum tersedia", href: "/katalog-prodi" },
+};
+
+export const persen = (x: number | null | undefined) => (x == null ? "–" : `${Math.round(x * 100)}%`);
+
+export const tanggal = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "–";
+
 export function pesanError(err: unknown) {
   return err instanceof Error && err.name === "ApiError" ? err.message : "Gagal memuat data. Coba lagi.";
 }

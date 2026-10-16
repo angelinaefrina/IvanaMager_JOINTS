@@ -13,33 +13,34 @@ import {
   IconCheckCircle,
   IconCalendar,
   IconBookOpen,
+  IconArrowRight,
 } from "../../../components/siswa/Icons";
-import { detailProdi, semuaProdi } from "../../../lib/api/katalog";
+import { detailProdi } from "../../../lib/api/katalog";
 import { daftarNilai } from "../../../lib/api/nilai";
 import {
   getTarget,
   hapusTargetProdi,
   jadikanTargetUtama,
+  penjelasan,
+  rekomendasiJenjang,
+  rekomendasiMapel,
+  rekomendasiProdi,
   tambahTargetProdi,
-  terakhirAsesmen,
 } from "../../../lib/api/rekomendasi";
 import { getMe } from "../../../lib/api/siswa";
 import type {
   DaftarNilai,
   DaftarTarget,
   DetailProdi,
-  HasilAsesmen,
+  HasilRekomendasi,
   JenisPendidikan,
-  ProdiRingkas,
+  Penjelasan,
+  RekomendasiJenjang,
+  RekomendasiMapel,
+  RekomendasiProdi,
   SiswaSaya,
 } from "../../../lib/api/types";
-import {
-  infoKelas,
-  labelJenis,
-  pesanError,
-  skorKecocokan,
-  skorMapelPendukung,
-} from "../../../lib/riasec";
+import { infoKelas, LABEL_KURANG, labelJenis, pesanError } from "../../../lib/riasec";
 
 // ─── Additional SVG icons specific to rekomendasi page ──────────────────────
 
@@ -133,26 +134,12 @@ const IconSend = ({ size = 14, color = "#006190", className }: LocalIconProps) =
 type Tone = "brand" | "muted" | "amber";
 type TabId = "prodi" | "mapel" | "jalur";
 type FilterJenis = "all" | JenisPendidikan;
+type Item = RekomendasiProdi["prodi"][number];
 
-/**
- * SEMENTARA: backend belum punya modul rekomendasi, jadi peringkat dihitung di sini
- * dari kecocokan RIASEC (60%) + rata-rata nilai mapel pendukung (40%).
- */
-const BOBOT_RIASEC = 0.6;
-const BOBOT_MAPEL = 0.4;
 const JUMLAH_UTAMA = 3;
-const JUMLAH_CADANGAN = 7;
 
-type Kandidat = {
-  prodi: ProdiRingkas;
-  riasec: number;
-  detail?: DetailProdi;
-  /** Rata-rata nilai mapel pendukung (null = belum ada nilai/ detail belum dimuat). */
-  mapel: number | null;
-  /** % mapel pendukung prodi yang sedang diambil siswa. */
-  linearitas: number | null;
-  skor: number;
-};
+/** Item rekomendasi dari backend + detail katalog (deskripsi & kampus) bila sudah dimuat. */
+type Kandidat = { s: Item; detail?: DetailProdi };
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -176,24 +163,17 @@ const JALUR_INFO = [
   { id: "Mandiri", title: "Mandiri & Kedinasan", desc: "Seleksi mandiri kampus atau tes kedinasan (SKD, kesehatan, kesamaptaan)." },
 ];
 
-function hitungKandidat(
-  prodi: ProdiRingkas,
-  kodeSiswa: string,
-  detail: DetailProdi | undefined,
-  mapelSiswa: Set<number>
-): Kandidat {
-  const riasec = skorKecocokan(prodi.kode_riasec, kodeSiswa) ?? 0;
-  const mapel = detail ? skorMapelPendukung(detail.mapel_pendukung) : null;
-  const pendukung = detail?.mapel_pendukung ?? [];
-  const linearitas = pendukung.length
-    ? Math.round((pendukung.filter((m) => mapelSiswa.has(m.mapel.id)).length / pendukung.length) * 100)
-    : null;
-  const skor = mapel === null ? riasec : Math.round(riasec * BOBOT_RIASEC + mapel * BOBOT_MAPEL);
-  return { prodi, riasec, detail, mapel, linearitas, skor };
-}
+const LABEL_JENJANG: Record<string, string> = {
+  S1: "S1 Akademik",
+  D4: "D4 Sarjana Terapan",
+  D3: "D3 Vokasi",
+  kedinasan: "Sekolah Kedinasan",
+};
+
+const pct = (x: number) => Math.round(x * 100);
 
 const labelCocok = (skor: number) =>
-  skor >= 90 ? "Sangat Cocok" : skor >= 80 ? "Cocok" : "Cukup Cocok";
+  skor >= 75 ? "Sangat Cocok" : skor >= 55 ? "Cocok" : "Cukup Cocok";
 
 const singkatan = (nama: string) =>
   nama
@@ -275,7 +255,7 @@ function TopInfoRow({ me, nilai }: { me: SiswaSaya | null; nilai: DaftarNilai | 
     <div className="rk-topinfo">
       <span className="rk-topinfo__badge">
         <IconSparkle size={15} color="#006190" />
-        Perhitungan Sementara &bull; RIASEC + Nilai Mapel Pendukung
+        Rekomendasi Berbasis Katalog &bull; Minat + Akademik + Karir
       </span>
       <div className="rk-topinfo__student">
         <span>
@@ -339,9 +319,8 @@ function HeroCard({
             Pusat Rekomendasi &amp; Penyelarasan Masa Depan
           </h1>
           <p className="rk-hero__desc">
-            Menggabungkan hasil tes minat RIASEC Holland dengan nilai rapor pada mapel
-            pendukung tiap program studi untuk menyusun urutan prodi yang paling selaras
-            denganmu.
+            Menggabungkan hasil tes minat RIASEC Holland, nilai rapor pada mapel pendukung,
+            dan karir impianmu untuk menyusun urutan prodi yang paling selaras denganmu.
           </p>
         </div>
 
@@ -417,7 +396,15 @@ function Segmented<T extends string>({
   );
 }
 
-function FilterToolbar({ jenis, onChange }: { jenis: FilterJenis; onChange: (j: FilterJenis) => void }) {
+function FilterToolbar({
+  jenis,
+  onChange,
+  bobot,
+}: {
+  jenis: FilterJenis;
+  onChange: (j: FilterJenis) => void;
+  bobot: RekomendasiProdi["bobot"] | null;
+}) {
   return (
     <div className="rk-toolbar" role="toolbar" aria-label="Filter rekomendasi">
       <div className="rk-toolbar__left">
@@ -435,7 +422,9 @@ function FilterToolbar({ jenis, onChange }: { jenis: FilterJenis; onChange: (j: 
 
       <div className="rk-toolbar__right">
         <span className="rk-toolbar__toggle-label">
-          Bobot: RIASEC {BOBOT_RIASEC * 100}% &bull; Nilai Mapel {BOBOT_MAPEL * 100}%
+          {bobot
+            ? `Bobot: Minat ${pct(bobot.minat)}% • Akademik ${pct(bobot.akademik)}% • Karir ${pct(bobot.karir)}%`
+            : ""}
         </span>
       </div>
     </div>
@@ -455,44 +444,49 @@ function ScoreBar({ value, tone }: { value: number; tone: "brand" | "blue" | "am
 function RecommendationCard({
   k,
   rank,
-  kodeSiswa,
   active,
   busy,
   onPrimary,
 }: {
   k: Kandidat;
   rank: number;
-  kodeSiswa: string;
   active: boolean;
   busy: boolean;
   onPrimary: () => void;
 }) {
+  const { s, detail } = k;
   const featured = rank === 0;
-  const isVokasi = k.prodi.jenis_pendidikan.includes("vokasi");
+  const isVokasi = s.prodi.jenis_pendidikan.includes("vokasi");
   const tone: Tone = isVokasi ? "amber" : featured ? "brand" : "muted";
   const metricTones: ("brand" | "blue" | "amber" | "muted")[] =
-    tone === "amber" ? ["amber", "amber"] : featured ? ["brand", "blue"] : ["muted", "muted"];
+    tone === "amber" ? ["amber", "amber", "amber"] : featured ? ["brand", "blue", "muted"] : ["muted", "muted", "muted"];
+  const total = pct(s.skor.total);
 
   const metrics = [
+    { label: "Kesesuaian Minat RIASEC", value: pct(s.skor.minat), note: `Kode prodi ${s.prodi.kode_riasec ?? "-"}` },
     {
-      label: "Kesesuaian Minat RIASEC",
-      value: k.riasec,
-      note: `Kode prodi ${k.prodi.kode_riasec} vs profilmu ${kodeSiswa}`,
+      label: "Kesiapan Akademik",
+      value: pct(s.skor.akademik),
+      note:
+        s.akademik.mapel
+          .filter((m) => m.nilai !== null)
+          .map((m) => `${m.nama} (${m.nilai})`)
+          .join(", ") || "Belum ada nilai pada mapel pendukung",
     },
     {
-      label: "Nilai Mapel Pendukung",
-      value: k.mapel,
-      note: k.detail
-        ? k.detail.mapel_pendukung
-            .filter((m) => m.nilai_terakhir_siswa != null)
-            .map((m) => `${m.mapel.nama} (${Number(m.nilai_terakhir_siswa)})`)
-            .join(", ") || "Belum ada nilai pada mapel pendukung"
-        : "Memuat...",
+      label: "Keterkaitan Karir",
+      value: pct(s.skor.karir),
+      note:
+        s.karir.alasan === "target_karir"
+          ? `Terhubung ke karir impianmu: ${s.karir.cocok.join(", ")}`
+          : s.karir.alasan === "bidang_karir"
+            ? `Sejalan dengan rumpun karir pilihanmu: ${s.karir.cocok.slice(0, 3).join(", ")}`
+            : "Belum terhubung ke karir impian/rumpun pilihanmu",
     },
   ];
 
-  const careers = k.detail?.contoh_karir.slice(0, 3) ?? [];
-  const campuses = k.detail?.perguruan_tinggi.slice(0, 4) ?? [];
+  const careers = s.contoh_karir.slice(0, 3);
+  const campuses = detail?.perguruan_tinggi.slice(0, 4) ?? [];
   const primaryLabel = featured
     ? active
       ? "Target Utama Tersimpan"
@@ -504,33 +498,32 @@ function RecommendationCard({
   return (
     <article
       className={`rk-card rk-card--${tone}${featured ? " rk-card--featured" : ""}`}
-      aria-labelledby={`rk-card-${k.prodi.id}`}
+      aria-labelledby={`rk-card-${s.prodi.id}`}
     >
-      {/* Banner */}
       <div className="rk-card__banner">
         <div className="rk-card__badges">
           <span className={`rk-rank rk-rank--${tone}`}>
-            #{rank + 1} {featured ? "Rekomendasi Terkuat" : "Rekomendasi Alternatif"}
+            #{s.peringkat} {featured ? "Rekomendasi Terkuat" : "Rekomendasi Alternatif"}
           </span>
-          <span className="rk-card__tag">{k.prodi.bidang_studi?.nama ?? "-"}</span>
+          <span className="rk-card__tag">{s.prodi.bidang_studi?.nama ?? "-"}</span>
+          {s.sesuai_preferensi_jenjang === false && <span className="rk-card__tag">Di luar jenjang pilihanmu</span>}
         </div>
         <span className={`rk-match rk-match--${tone === "amber" ? "amber" : "brand"}`}>
           <IconVerified size={16} color={tone === "amber" ? "#7C5400" : "#006190"} />
-          {k.skor}% {labelCocok(k.skor)}
+          {total}% {labelCocok(total)}
         </span>
       </div>
 
-      {/* Body: info + score panel */}
       <div className="rk-card__body">
         <div className="rk-card__info">
           <div className="rk-card__meta">
             <IconBookOpen size={14} color={tone === "amber" ? "#7C5400" : "#006190"} />
-            <span>{k.prodi.bidang_studi?.nama ?? "-"}</span>
+            <span>{s.prodi.bidang_studi?.nama ?? "-"}</span>
             <span aria-hidden="true">&bull;</span>
-            <span>Pendidikan {labelJenis(k.prodi.jenis_pendidikan)}</span>
+            <span>Pendidikan {labelJenis(s.prodi.jenis_pendidikan as JenisPendidikan[])}</span>
           </div>
-          <h2 className="rk-card__title" id={`rk-card-${k.prodi.id}`}>{k.prodi.nama}</h2>
-          {k.detail?.deskripsi && <p className="rk-card__desc">{k.detail.deskripsi}</p>}
+          <h2 className="rk-card__title" id={`rk-card-${s.prodi.id}`}>{s.prodi.nama}</h2>
+          {detail?.deskripsi && <p className="rk-card__desc">{detail.deskripsi}</p>}
 
           {careers.length > 0 && (
             <div className="rk-careers">
@@ -554,10 +547,10 @@ function RecommendationCard({
                 <div className="rk-metric__head">
                   <span className="rk-metric__label">{m.label}</span>
                   <span className={`rk-metric__value${featured && idx === 1 ? " rk-metric__value--blue" : ""}`}>
-                    {m.value !== null ? `${m.value}/100` : "–"}
+                    {m.value}/100
                   </span>
                 </div>
-                <ScoreBar value={m.value ?? 0} tone={metricTones[idx] ?? "muted"} />
+                <ScoreBar value={m.value} tone={metricTones[idx] ?? "muted"} />
                 {m.note && <span className="rk-metric__note">{m.note}</span>}
               </div>
             ))}
@@ -566,19 +559,18 @@ function RecommendationCard({
           <dl className="rk-facts">
             <div className="rk-fact">
               <dt>Kode RIASEC Prodi:</dt>
-              <dd>{k.prodi.kode_riasec}</dd>
+              <dd>{s.prodi.kode_riasec ?? "-"}</dd>
             </div>
-            {k.detail && (
+            {detail && (
               <div className="rk-fact">
                 <dt>Kampus Terdata:</dt>
-                <dd>{k.detail.perguruan_tinggi.length} kampus</dd>
+                <dd>{detail.perguruan_tinggi.length} kampus</dd>
               </div>
             )}
           </dl>
         </div>
       </div>
 
-      {/* Campuses */}
       {campuses.length > 0 && (
         <div className="rk-campuses">
           <span className="rk-campuses__heading">Perguruan Tinggi yang Membuka Prodi Ini:</span>
@@ -599,21 +591,22 @@ function RecommendationCard({
         </div>
       )}
 
-      {/* Footer */}
       <div className={`rk-card__footer${featured ? " rk-card__footer--featured" : ""}`}>
-        {featured && k.linearitas !== null && (
+        {featured && (
           <span className="rk-card__note">
             <IconInfo size={13} color="#7C5400" />
-            {k.linearitas}% mapel pendukung prodi ini sudah kamu ambil
+            {s.akademik.data_kurang
+              ? "Nilaimu baru menutup sebagian kecil mapel pendukung prodi ini"
+              : `${pct(s.akademik.cakupan)}% bobot mapel pendukung prodi ini sudah ada nilainya`}
           </span>
         )}
         <div className="rk-card__actions">
           <Link
-            href={`/katalog-prodi?q=${encodeURIComponent(k.prodi.nama)}`}
+            href={`/katalog-prodi/${s.prodi.id}`}
             className={featured ? "rk-btn rk-btn--outline" : "rk-btn rk-btn--light"}
           >
             {featured && <IconEye size={16} color="#0B1C30" />}
-            Lihat di Katalog
+            Detail Prodi
           </Link>
           <button
             type="button"
@@ -631,20 +624,22 @@ function RecommendationCard({
   );
 }
 
-function CadanganList({ items, offset }: { items: Kandidat[]; offset: number }) {
+function CadanganList({ items }: { items: Kandidat[] }) {
   return (
     <ul className="rk-cadangan" role="list" aria-label="Pilihan rekomendasi cadangan">
-      {items.map((c, idx) => (
-        <li key={c.prodi.id} className="rk-cadangan__item">
-          <span className="rk-cadangan__rank">#{offset + idx + 1}</span>
+      {items.map(({ s }) => (
+        <li key={s.prodi.id} className="rk-cadangan__item">
+          <span className="rk-cadangan__rank">#{s.peringkat}</span>
           <span className="rk-cadangan__text">
-            <span className="rk-cadangan__title">{c.prodi.nama}</span>
+            <Link href={`/katalog-prodi/${s.prodi.id}`} className="rk-cadangan__title">
+              {s.prodi.nama}
+            </Link>
             <span className="rk-cadangan__meta">
-              {c.prodi.bidang_studi?.nama ?? "-"} &bull; {labelJenis(c.prodi.jenis_pendidikan)} &bull; RIASEC{" "}
-              {c.prodi.kode_riasec}
+              {s.prodi.bidang_studi?.nama ?? "-"} &bull; {labelJenis(s.prodi.jenis_pendidikan as JenisPendidikan[])}{" "}
+              &bull; RIASEC {s.prodi.kode_riasec ?? "-"}
             </span>
           </span>
-          <span className="rk-cadangan__match">{c.skor}%</span>
+          <span className="rk-cadangan__match">{pct(s.skor.total)}%</span>
         </li>
       ))}
     </ul>
@@ -653,23 +648,29 @@ function CadanganList({ items, offset }: { items: Kandidat[]; offset: number }) 
 
 // ── Sidebar cards ────────────────────────────────────────────────────────────
 
-function XaiCard({ k, kodeSiswa }: { k: Kandidat | undefined; kodeSiswa: string }) {
+function XaiCard({ k, bobot }: { k: Kandidat | undefined; bobot: RekomendasiProdi["bobot"] }) {
+  const [teks, setTeks] = useState<Penjelasan | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   if (!k) return null;
-  const komponen =
-    k.mapel === null
-      ? [{ label: "Kecocokan RIASEC (100%)", score: `${k.riasec} pt`, dotClass: "rk-dot--blue" }]
-      : [
-          {
-            label: `Nilai Mapel Pendukung (${BOBOT_MAPEL * 100}%)`,
-            score: `${(k.mapel * BOBOT_MAPEL).toFixed(1)} pt`,
-            dotClass: "rk-dot--brand",
-          },
-          {
-            label: `Kecocokan RIASEC ${kodeSiswa} (${BOBOT_RIASEC * 100}%)`,
-            score: `${(k.riasec * BOBOT_RIASEC).toFixed(1)} pt`,
-            dotClass: "rk-dot--blue",
-          },
-        ];
+  const { s } = k;
+  const komponen = [
+    { label: `Kecocokan Minat (${pct(bobot.minat)}%)`, skor: s.skor.minat * bobot.minat, dotClass: "rk-dot--blue" },
+    { label: `Kesiapan Akademik (${pct(bobot.akademik)}%)`, skor: s.skor.akademik * bobot.akademik, dotClass: "rk-dot--brand" },
+    { label: `Keterkaitan Karir (${pct(bobot.karir)}%)`, skor: s.skor.karir * bobot.karir, dotClass: "rk-dot--muted" },
+  ];
+
+  const jelaskan = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setTeks(await penjelasan("prodi"));
+    } catch (err) {
+      setError(pesanError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <section className="rk-side-card" aria-labelledby="rk-xai-title">
@@ -683,7 +684,7 @@ function XaiCard({ k, kodeSiswa }: { k: Kandidat | undefined; kodeSiswa: string 
         </div>
       </div>
       <p className="rk-side-card__desc">
-        Mengapa {k.prodi.nama} berada di posisi teratas rekomendasi kamu? Berikut pembobotannya:
+        Mengapa {s.prodi.nama} berada di posisi teratas rekomendasi kamu? Berikut pembobotannya:
       </p>
 
       <table className="rk-xai-table">
@@ -700,7 +701,7 @@ function XaiCard({ k, kodeSiswa }: { k: Kandidat | undefined; kodeSiswa: string 
                 <span className={`rk-dot ${c.dotClass}`} aria-hidden="true" />
                 {c.label}
               </td>
-              <td>{c.score}</td>
+              <td>{(c.skor * 100).toFixed(1)} pt</td>
             </tr>
           ))}
         </tbody>
@@ -708,7 +709,7 @@ function XaiCard({ k, kodeSiswa }: { k: Kandidat | undefined; kodeSiswa: string 
           <tr>
             <td>Total Skor Keselarasan</td>
             <td>
-              {k.skor}% ({labelCocok(k.skor)})
+              {pct(s.skor.total)}% ({labelCocok(pct(s.skor.total))})
             </td>
           </tr>
         </tfoot>
@@ -717,15 +718,19 @@ function XaiCard({ k, kodeSiswa }: { k: Kandidat | undefined; kodeSiswa: string 
       <div className="rk-argument">
         <span className="rk-argument__title">
           <IconBulb size={13} color="#0B1C30" />
-          Argumen Kesimpulan:
+          Penjelasan:
         </span>
-        <p className="rk-argument__text">
-          Kode RIASEC prodi ini ({k.prodi.kode_riasec}) selaras dengan profil minatmu ({kodeSiswa})
-          {k.mapel !== null
-            ? `, dan rata-rata nilai terakhirmu pada mapel pendukungnya adalah ${k.mapel}.`
-            : ". Nilai mapel pendukung belum ikut dihitung karena belum ada nilai rapor."}{" "}
-          Skor ini perhitungan sementara; model rekomendasi resmi belum tersedia.
-        </p>
+        {teks ? (
+          <p className="rk-argument__text" style={{ whiteSpace: "pre-wrap" }}>
+            {teks.penjelasan ?? `Penjelasan belum tersedia (${teks.alasan ?? "coba lagi nanti"}).`}
+          </p>
+        ) : (
+          <button type="button" className="rk-side-btn" disabled={busy} onClick={jelaskan}>
+            {busy ? "Menyusun penjelasan..." : "Jelaskan rekomendasi ini"}
+            <IconArrowRight size={9} color="#006190" />
+          </button>
+        )}
+        {error && <p className="rk-argument__text">{error}</p>}
       </div>
     </section>
   );
@@ -742,17 +747,13 @@ function PaketMapelCard({ me, rekomendasi }: { me: SiswaSaya | null; rekomendasi
         </h2>
         <span className="rk-pill">{mapel.length} Mapel</span>
       </div>
-      <p className="rk-side-card__desc">
-        Mata pelajaran yang sedang kamu tempuh (diisi saat onboarding):
-      </p>
+      <p className="rk-side-card__desc">Mata pelajaran yang sedang kamu tempuh:</p>
       {mapel.length === 0 ? (
         <p className="rk-side-card__desc">Belum ada mapel yang dipilih.</p>
       ) : (
         <ul className="rk-mapel" role="list">
           {mapel.map((m) => {
-            const dipakai = rekomendasi.filter((r) =>
-              r.detail?.mapel_pendukung.some((x) => x.mapel.id === m.id)
-            ).length;
+            const dipakai = rekomendasi.filter(({ s }) => s.akademik.mapel.some((x) => x.kode === m.kode)).length;
             return (
               <li key={m.id} className="rk-mapel__item">
                 <span className="rk-mapel__code" aria-hidden="true">{m.kode}</span>
@@ -774,40 +775,35 @@ function PaketMapelCard({ me, rekomendasi }: { me: SiswaSaya | null; rekomendasi
   );
 }
 
-function PeluangTipeCard({ ranked }: { ranked: Kandidat[] }) {
-  const tipe = (["akademik", "vokasi"] as const).map((j) => {
-    const list = ranked.filter((k) => k.prodi.jenis_pendidikan.includes(j)).slice(0, 5);
-    const pct = list.length ? Math.round(list.reduce((t, k) => t + k.riasec, 0) / list.length) : 0;
-    return {
-      label: j === "akademik" ? "Pendidikan Akademik (S1)" : "Pendidikan Vokasi (D3/D4)",
-      pct,
-      tone: j === "akademik" ? "brand" : "blue",
-      desc: list.length
-        ? `Rata-rata kecocokan RIASEC 5 prodi ${j} teratas`
-        : `Belum ada prodi ${j} dengan kode RIASEC`,
-    } as const;
-  });
-
+function JenjangCard({ data }: { data: HasilRekomendasi<RekomendasiJenjang> | null }) {
+  const maks = data?.tersedia ? Math.max(1, ...data.hasil.jenjang.map((j) => j.poin)) : 1;
   return (
     <section className="rk-side-card" aria-labelledby="rk-tipe-title">
       <h2 className="rk-side-card__title rk-side-card__title--icon" id="rk-tipe-title">
         <IconScale size={17} color="#0B1C30" />
-        Kecocokan Tipe Pendidikan
+        Rekomendasi Jenjang Pendidikan
       </h2>
-      <ul className="rk-tipe" role="list">
-        {tipe.map((t) => (
-          <li key={t.label} className="rk-tipe__item">
-            <div className="rk-tipe__head">
-              <span className="rk-tipe__label">{t.label}</span>
-              <span className={`rk-tipe__pct rk-tipe__pct--${t.tone}`}>
-                {t.pct}% {labelCocok(t.pct)}
-              </span>
-            </div>
-            <ScoreBar value={t.pct} tone={t.tone} />
-            <span className="rk-tipe__desc">{t.desc}</span>
-          </li>
-        ))}
-      </ul>
+      {!data ? (
+        <p className="rk-side-card__desc">Memuat...</p>
+      ) : !data.tersedia ? (
+        <p className="rk-side-card__desc">
+          Isi preferensi pendidikan di <Link href="/onboarding">profil</Link> untuk melihat rekomendasi jenjang.
+        </p>
+      ) : (
+        <ul className="rk-tipe" role="list">
+          {data.hasil.jenjang.map((j, i) => (
+            <li key={j.jenjang} className="rk-tipe__item">
+              <div className="rk-tipe__head">
+                <span className="rk-tipe__label">{LABEL_JENJANG[j.jenjang] ?? j.jenjang}</span>
+                <span className={`rk-tipe__pct rk-tipe__pct--${i === 0 ? "brand" : "blue"}`}>{j.poin} poin</span>
+              </div>
+              <ScoreBar value={(j.poin / maks) * 100} tone={i === 0 ? "brand" : "blue"} />
+              <span className="rk-tipe__desc">{j.alasan.join(", ") || "Belum ada faktor pendukung"}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {data?.tersedia && data.hasil.catatan && <p className="rk-side-card__desc">{data.hasil.catatan}</p>}
     </section>
   );
 }
@@ -822,8 +818,7 @@ function BkCtaCard({ sekolah }: { sekolah: string | null }) {
         Diskusikan dengan Guru BK
       </h2>
       <p className="rk-bk__desc">
-        Guru BK {sekolah ?? "sekolahmu"} dapat meninjau rekomendasi dan target prodimu
-        melalui dashboard BK.
+        Guru BK {sekolah ?? "sekolahmu"} dapat meninjau rekomendasi dan target prodimu melalui dashboard BK.
       </p>
       <button type="button" className="rk-bk__btn rk-bk__btn--primary">
         <IconSend size={14} color="#006190" />
@@ -839,36 +834,45 @@ function BkCtaCard({ sekolah }: { sekolah: string | null }) {
 
 // ── Tab 2 & 3 panels ─────────────────────────────────────────────────────────
 
-function MapelAlignmentCard({ rekomendasi }: { rekomendasi: Kandidat[] }) {
+function MapelRekomendasiCard({ data }: { data: HasilRekomendasi<RekomendasiMapel> | null }) {
   return (
     <section className="rk-side-card" aria-labelledby="rk-align-title">
       <h2 className="rk-side-card__title rk-side-card__title--icon" id="rk-align-title">
         <IconBookOpen size={17} color="#006190" />
-        Keselarasan Mapel dengan Rekomendasi
+        Rekomendasi Mapel Pilihan
       </h2>
-      <p className="rk-side-card__desc">
-        Persentase mapel pendukung tiap prodi rekomendasi teratas yang sedang kamu ambil:
-      </p>
-      <ul className="rk-tipe" role="list">
-        {rekomendasi.map((r) => {
-          const tone = r.prodi.jenis_pendidikan.includes("vokasi") ? "amber" : "brand";
-          const pendukung = r.detail?.mapel_pendukung.map((m) => m.mapel.nama).join(", ");
-          return (
-            <li key={r.prodi.id} className="rk-tipe__item">
-              <div className="rk-tipe__head">
-                <span className="rk-tipe__label">{r.prodi.nama}</span>
-                <span className={`rk-tipe__pct rk-tipe__pct--${tone}`}>
-                  {r.linearitas !== null ? `${r.linearitas}%` : "–"}
+      {!data ? (
+        <p className="rk-side-card__desc">Memuat...</p>
+      ) : !data.tersedia ? (
+        <p className="rk-side-card__desc">Lengkapi data terlebih dahulu (lihat tab Rekomendasi Prodi).</p>
+      ) : (
+        <>
+          <p className="rk-side-card__desc">
+            Mapel pilihan yang paling mendukung prodi kandidatmu (
+            {data.hasil.prodi_kandidat.map((p) => p.nama).join(", ")}).
+            {!data.hasil.relevan && " Kamu di kelas 12, jadi ini hanya sebagai referensi."}
+          </p>
+          <ul className="rk-tipe" role="list">
+            {data.hasil.mapel.map((m) => (
+              <li key={m.mapel.id} className="rk-tipe__item">
+                <div className="rk-tipe__head">
+                  <span className="rk-tipe__label">
+                    {m.mapel.nama}
+                    {m.sudah_diambil ? " ✓" : ""}
+                  </span>
+                  <span className="rk-tipe__pct rk-tipe__pct--brand">{pct(m.skor)}%</span>
+                </div>
+                <ScoreBar value={pct(m.skor)} tone="brand" />
+                <span className="rk-tipe__desc">
+                  {m.sudah_diambil ? "Sudah kamu ambil" : "Belum diambil"} • mendukung{" "}
+                  {m.dukungan.map((d) => d.prodi).join(", ")}
+                  {m.nilai_siswa != null ? ` • nilaimu ${m.nilai_siswa}` : ""}
                 </span>
-              </div>
-              <ScoreBar value={r.linearitas ?? 0} tone={tone} />
-              <span className="rk-tipe__desc">
-                {pendukung ? `Mapel pendukung: ${pendukung}` : "Data mapel pendukung belum tersedia"}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }
@@ -964,65 +968,58 @@ export default function RekomendasiPage() {
   const [showCadangan, setShowCadangan] = useState(false);
 
   const [me, setMe] = useState<SiswaSaya | null>(null);
-  const [asesmen, setAsesmen] = useState<HasilAsesmen | null>(null);
   const [nilai, setNilai] = useState<DaftarNilai | null>(null);
   const [target, setTarget] = useState<DaftarTarget>({ karir: [], prodi: [] });
-  const [prodi, setProdi] = useState<ProdiRingkas[] | null>(null);
+  const [rek, setRek] = useState<HasilRekomendasi<RekomendasiProdi> | null>(null);
+  const [mapel, setMapel] = useState<HasilRekomendasi<RekomendasiMapel> | null>(null);
+  const [jenjang, setJenjang] = useState<HasilRekomendasi<RekomendasiJenjang> | null>(null);
   const [details, setDetails] = useState<Record<string, DetailProdi>>({});
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     let batal = false;
-    Promise.all([getMe(), terakhirAsesmen(), daftarNilai(), getTarget(), semuaProdi()])
-      .then(([m, a, n, t, p]) => {
+    Promise.all([getMe(), daftarNilai(), getTarget(), rekomendasiProdi()])
+      .then(([m, n, t, r]) => {
         if (batal) return;
         setMe(m);
-        setAsesmen(a);
         setNilai(n);
         setTarget(t);
-        setProdi(p);
+        setRek(r);
       })
       .catch((err) => !batal && setError(pesanError(err)));
+    rekomendasiJenjang().then((j) => !batal && setJenjang(j)).catch(() => undefined);
     return () => {
       batal = true;
     };
   }, []);
 
-  const kodeSiswa = asesmen?.kode_holland ?? null;
-  const mapelSiswa = useMemo(() => new Set(me?.mapel.map((m) => m.mapel.id) ?? []), [me]);
+  useEffect(() => {
+    if (tab === "mapel" && !mapel) rekomendasiMapel().then(setMapel).catch((err) => setError(pesanError(err)));
+  }, [tab, mapel]);
 
-  // Peringkat awal hanya dari RIASEC (detail prodi dimuat untuk yang tampil saja).
-  const ranked = useMemo(() => {
-    if (!prodi || !kodeSiswa) return [];
-    return prodi
-      .filter((p) => p.kode_riasec && (jenis === "all" || p.jenis_pendidikan.includes(jenis)))
-      .map((p) => hitungKandidat(p, kodeSiswa, details[p.id], mapelSiswa))
-      .sort((a, b) => b.riasec - a.riasec || a.prodi.nama.localeCompare(b.prodi.nama));
-  }, [prodi, kodeSiswa, jenis, details, mapelSiswa]);
+  const hasil = rek?.tersedia ? rek.hasil : null;
+  const tersaring = useMemo(
+    () =>
+      (hasil?.prodi ?? [])
+        .filter((s) => jenis === "all" || s.prodi.jenis_pendidikan.includes(jenis))
+        .map((s): Kandidat => ({ s, detail: details[s.prodi.id] })),
+    [hasil, jenis, details]
+  );
+  const utama = tersaring.slice(0, JUMLAH_UTAMA);
+  const cadangan = tersaring.slice(JUMLAH_UTAMA);
 
-  // Kandidat teratas diurutkan ulang dengan skor gabungan setelah detailnya ada.
-  const pool = ranked.slice(0, JUMLAH_UTAMA + JUMLAH_CADANGAN);
-  const kandidatUtama = ranked.slice(0, JUMLAH_UTAMA * 2).sort((a, b) => b.skor - a.skor);
-  const utama = kandidatUtama.slice(0, JUMLAH_UTAMA);
-  const idUtama = new Set(utama.map((k) => k.prodi.id));
-  const cadangan = pool.filter((k) => !idUtama.has(k.prodi.id)).slice(0, JUMLAH_CADANGAN);
-
-  const idPerluDetail = ranked
-    .slice(0, JUMLAH_UTAMA * 2)
-    .map((k) => k.prodi.id)
+  // Deskripsi & daftar kampus diambil dari katalog untuk kartu utama saja.
+  const idPerluDetail = utama
+    .map((k) => k.s.prodi.id)
     .filter((id) => !details[id])
     .join(",");
-
   useEffect(() => {
     if (!idPerluDetail) return;
     let batal = false;
     Promise.all(idPerluDetail.split(",").map((id) => detailProdi(id)))
-      .then((list) => {
-        if (batal) return;
-        setDetails((d) => ({ ...d, ...Object.fromEntries(list.map((x) => [x.id, x])) }));
-      })
-      .catch((err) => !batal && setError(pesanError(err)));
+      .then((list) => !batal && setDetails((d) => ({ ...d, ...Object.fromEntries(list.map((x) => [x.id, x])) })))
+      .catch(() => undefined);
     return () => {
       batal = true;
     };
@@ -1035,20 +1032,21 @@ export default function RekomendasiPage() {
 
   const handlePrimary = async (k: Kandidat, featured: boolean) => {
     if (busyId) return;
-    setBusyId(k.prodi.id);
+    const id = k.s.prodi.id;
+    setBusyId(id);
     try {
-      const ada = targetPerProdi.get(k.prodi.id);
+      const ada = targetPerProdi.get(id);
       if (featured) {
         if (ada?.is_utama) {
           setTarget({ ...target, prodi: await hapusTargetProdi(ada.id) });
         } else {
-          const baru = ada ?? (await tambahTargetProdi({ prodi_id: k.prodi.id, sumber: "rekomendasi" }));
+          const baru = ada ?? (await tambahTargetProdi({ prodi_id: id, sumber: "rekomendasi" }));
           setTarget({ ...target, prodi: await jadikanTargetUtama(baru.id) });
         }
       } else if (ada) {
         setTarget({ ...target, prodi: await hapusTargetProdi(ada.id) });
       } else {
-        const baru = await tambahTargetProdi({ prodi_id: k.prodi.id, sumber: "rekomendasi" });
+        const baru = await tambahTargetProdi({ prodi_id: id, sumber: "rekomendasi" });
         setTarget({ ...target, prodi: [...target.prodi, baru] });
       }
     } catch (err) {
@@ -1057,16 +1055,6 @@ export default function RekomendasiPage() {
       setBusyId(null);
     }
   };
-
-  const status = error
-    ? error
-    : !prodi
-      ? "Memuat rekomendasi..."
-      : !kodeSiswa
-        ? null
-        : ranked.length === 0
-          ? "Belum ada prodi dengan kode RIASEC yang cocok dengan filter ini."
-          : null;
 
   return (
     <div className="page-rekomendasi">
@@ -1078,51 +1066,61 @@ export default function RekomendasiPage() {
           <HeroCard
             tab={tab}
             onTabChange={setTab}
-            kodeSiswa={kodeSiswa}
+            kodeSiswa={hasil?.kode_holland ?? null}
             rapor={rataRapor(nilai)}
-            skorTeratas={utama[0]?.skor ?? null}
-            jumlahProdi={ranked.length}
+            skorTeratas={hasil?.prodi[0] ? pct(hasil.prodi[0].skor.total) : null}
+            jumlahProdi={hasil?.jumlah_prodi_dinilai ?? 0}
           />
 
-          {status && (
-            <div className="rk-empty" role={error ? "alert" : "status"}>
-              {status}
+          {error && (
+            <div className="rk-empty" role="alert">
+              {error}
+            </div>
+          )}
+          {!rek && !error && (
+            <div className="rk-empty" role="status">
+              Memuat rekomendasi...
             </div>
           )}
 
-          {prodi && !kodeSiswa && !error && (
+          {rek && !rek.tersedia && (
             <div className="rk-empty">
-              Rekomendasi disusun dari hasil tes minat RIASEC, dan kamu belum mengerjakannya.
-              <Link href="/tes-minat" className="rk-empty__reset">
-                Kerjakan Tes Minat
-              </Link>
+              Rekomendasi belum bisa disusun. Lengkapi dulu:
+              <span style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 8 }}>
+                {rek.kurang.map((k) => (
+                  <Link key={k} href={LABEL_KURANG[k]?.href ?? "/beranda"} className="rk-empty__reset">
+                    {LABEL_KURANG[k]?.label ?? k}
+                  </Link>
+                ))}
+              </span>
             </div>
           )}
 
-          {kodeSiswa && tab === "prodi" && (
+          {hasil && tab === "prodi" && (
             <>
-              <FilterToolbar jenis={jenis} onChange={setJenis} />
+              <FilterToolbar jenis={jenis} onChange={setJenis} bobot={hasil.bobot} />
+              {hasil.katalog_draf && (
+                <div className="rk-empty">Sebagian data katalog masih draf dan belum diverifikasi.</div>
+              )}
 
               <div className="rk-grid" role="tabpanel" id="rk-panel-prodi" aria-labelledby="rk-tab-prodi">
                 <div className="rk-col-left">
+                  {utama.length === 0 && <div className="rk-empty">Tidak ada prodi untuk filter ini.</div>}
                   {utama.map((k, i) => {
-                    const t = targetPerProdi.get(k.prodi.id);
+                    const t = targetPerProdi.get(k.s.prodi.id);
                     return (
                       <RecommendationCard
-                        key={k.prodi.id}
+                        key={k.s.prodi.id}
                         k={k}
                         rank={i}
-                        kodeSiswa={kodeSiswa}
                         active={i === 0 ? !!t?.is_utama : !!t}
-                        busy={busyId === k.prodi.id}
+                        busy={busyId === k.s.prodi.id}
                         onPrimary={() => handlePrimary(k, i === 0)}
                       />
                     );
                   })}
 
-                  {showCadangan && cadangan.length > 0 && (
-                    <CadanganList items={cadangan} offset={utama.length} />
-                  )}
+                  {showCadangan && cadangan.length > 0 && <CadanganList items={cadangan} />}
 
                   {cadangan.length > 0 && (
                     <button
@@ -1144,25 +1142,25 @@ export default function RekomendasiPage() {
                 </div>
 
                 <aside className="rk-col-right" aria-label="Penjelasan dan aksi pendukung">
-                  <XaiCard k={utama[0]} kodeSiswa={kodeSiswa} />
+                  <XaiCard k={utama[0]} bobot={hasil.bobot} />
                   <PaketMapelCard me={me} rekomendasi={utama} />
-                  <PeluangTipeCard ranked={ranked} />
+                  <JenjangCard data={jenjang} />
                   <BkCtaCard sekolah={me?.profil.sekolah?.nama ?? null} />
                 </aside>
               </div>
             </>
           )}
 
-          {kodeSiswa && tab === "mapel" && (
+          {hasil && tab === "mapel" && (
             <div className="rk-panel-grid" role="tabpanel" id="rk-panel-mapel" aria-labelledby="rk-tab-mapel">
               <PaketMapelCard me={me} rekomendasi={utama} />
-              <MapelAlignmentCard rekomendasi={utama} />
+              <MapelRekomendasiCard data={mapel} />
             </div>
           )}
 
-          {kodeSiswa && tab === "jalur" && (
+          {tab === "jalur" && (
             <div className="rk-panel-grid" role="tabpanel" id="rk-panel-jalur" aria-labelledby="rk-tab-jalur">
-              <PeluangTipeCard ranked={ranked} />
+              <JenjangCard data={jenjang} />
               <JalurSeleksiCard />
             </div>
           )}

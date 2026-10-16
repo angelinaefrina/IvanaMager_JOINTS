@@ -1,12 +1,11 @@
-export default async function BkDetailSiswaPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+import { Suspense } from "react";
+import { DetailSiswa } from "./DetailSiswa";
+
+// Data diambil di browser (butuh token Supabase), jadi param dibaca di client component.
+export default function BkDetailSiswaPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Detail Siswa: {id} (UC11, UC12)</h1>
-    </div>
+    <Suspense fallback={null}>
+      <DetailSiswa />
+    </Suspense>
   );
 }

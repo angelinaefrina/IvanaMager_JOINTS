@@ -1,5 +1,5 @@
 import { apiClient, makeApiClient } from "./client";
-import type { SiswaSaya } from "./types";
+import type { Perkembangan, SiswaSaya } from "./types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,6 +76,9 @@ export const ubahTargetKarir = (target_karir: TargetKarirItem[]) =>
 /** DELETE /siswa/me/target-karir/:id – hapus satu target karir. */
 export const hapusTargetKarir = (id: string) =>
   apiClient.del(`/siswa/me/target-karir/${id}`);
+
+/** GET /siswa/me/perkembangan – perubahan minat & nilai antar waktu (UC12). */
+export const perkembangan = () => apiClient.get<Perkembangan>("/siswa/me/perkembangan");
 
 // ─── Server-side variant (token eksplisit) ────────────────────────────────────
 

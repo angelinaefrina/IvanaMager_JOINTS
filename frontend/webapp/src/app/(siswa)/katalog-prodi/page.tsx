@@ -621,7 +621,11 @@ export default function KatalogProdiPage() {
                         <span className="kp-card-univ">
                           {(p.bidang_studi?.nama ?? "Bidang studi -").toUpperCase()}
                         </span>
-                        <h2 className="kp-card-title">{p.nama}</h2>
+                        <h2 className="kp-card-title">
+                          <Link href={`/katalog-prodi/${p.id}`} style={{ color: "inherit", textDecoration: "none" }}>
+                            {p.nama}
+                          </Link>
+                        </h2>
                         <p className="kp-card-dept">Pendidikan {labelJenis(p.jenis_pendidikan)}</p>
                       </div>
                       <div className={`kp-univ-avatar ${tema}`}>{p.bidang_studi?.kode ?? "?"}</div>
@@ -697,6 +701,10 @@ export default function KatalogProdiPage() {
                         </button>
                       </div>
 
+                      <Link href={`/katalog-prodi/${p.id}`} className="kp-card-ext-link">
+                        <span>Lihat Detail Prodi</span>
+                        <IconArrowRight size={12} color="currentColor" />
+                      </Link>
                       {p.sumber_url && (
                         <a
                           href={p.sumber_url}

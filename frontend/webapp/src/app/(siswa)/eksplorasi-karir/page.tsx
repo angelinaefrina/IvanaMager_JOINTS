@@ -571,10 +571,10 @@ export default function EksplorasiKarirPage() {
                         <div className="ek-ring-inner">{p.match !== null ? `${p.match}%` : "–"}</div>
                       </div>
                       <Link
-                        href={`/katalog-prodi?q=${encodeURIComponent(p.nama)}`}
+                        href={`/katalog-prodi/${p.id}`}
                         className="ek-major-link"
                       >
-                        Lihat di Katalog
+                        Lihat Detail Prodi
                         <IconArrowRight size={12} color="currentColor" />
                       </Link>
                     </div>

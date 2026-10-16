@@ -1,12 +1,10 @@
-export default async function DetailProdiPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+import { Suspense } from "react";
+import { DetailProdi } from "./DetailProdi";
+
+export default function DetailProdiPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Detail Program Studi: {id}</h1>
-    </div>
+    <Suspense fallback={null}>
+      <DetailProdi />
+    </Suspense>
   );
 }

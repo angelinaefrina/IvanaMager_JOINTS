@@ -2,6 +2,12 @@ import { apiClient } from "./client";
 import type {
   DaftarTarget,
   HasilAsesmen,
+  HasilRekomendasi,
+  Keselarasan,
+  Penjelasan,
+  RekomendasiJenjang,
+  RekomendasiMapel,
+  RekomendasiProdi,
   Instrumen,
   SumberTarget,
   TargetKarir,
@@ -77,6 +83,23 @@ export const jadikanTargetUtama = (id: string) =>
 /** DELETE /siswa/me/target-prodi/:id – hapus target prodi; kembalikan daftar terbaru. */
 export const hapusTargetProdi = (id: string) =>
   apiClient.del<TargetProdi[]>(`/siswa/me/target-prodi/${id}`);
+
+// ─── Hasil rekomendasi backend (UC04/06/07/08) ───────────────────────────────
+
+export const rekomendasiProdi = () =>
+  apiClient.get<HasilRekomendasi<RekomendasiProdi>>("/siswa/me/rekomendasi/prodi");
+
+export const rekomendasiMapel = () =>
+  apiClient.get<HasilRekomendasi<RekomendasiMapel>>("/siswa/me/rekomendasi/mapel");
+
+export const rekomendasiJenjang = () =>
+  apiClient.get<HasilRekomendasi<RekomendasiJenjang>>("/siswa/me/rekomendasi/jenjang");
+
+export const keselarasan = () => apiClient.get<HasilRekomendasi<Keselarasan>>("/siswa/me/keselarasan");
+
+/** POST /siswa/me/rekomendasi/:jenis/penjelasan – penjelasan naratif (LLM / template). */
+export const penjelasan = (jenis: "prodi" | "mapel" | "jenjang" | "keselarasan") =>
+  apiClient.post<Penjelasan>(`/siswa/me/rekomendasi/${jenis}/penjelasan`);
 
 export const rekomendasiApi = {
   getInstrumen,

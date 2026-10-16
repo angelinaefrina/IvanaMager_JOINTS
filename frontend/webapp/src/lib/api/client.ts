@@ -6,7 +6,9 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly code: string,
-    message: string
+    message: string,
+    /** Rincian tambahan dari backend, mis. daftar error impor CSV. */
+    public readonly details?: unknown
   ) {
     super(message);
     this.name = "ApiError";
@@ -48,7 +50,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const code = json?.error?.code ?? "UNKNOWN";
     const message = json?.error?.message ?? res.statusText;
-    throw new ApiError(res.status, code, message);
+    throw new ApiError(res.status, code, message, json?.error?.details);
   }
   // Backend selalu membungkus response dalam { data: ... }
   return (json?.data ?? json) as T;
