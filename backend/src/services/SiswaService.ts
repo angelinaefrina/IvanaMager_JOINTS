@@ -54,7 +54,7 @@ async function ambilProfil(siswaId: string) {
 }
 
 /** Selaraskan siswa.onboarding_selesai dengan kelengkapan data saat ini. */
-async function sinkronStatusOnboarding(siswaId: string) {
+export async function sinkronStatusOnboarding(siswaId: string) {
   const [profil, siswa] = await Promise.all([ambilProfil(siswaId), SiswaModel.findById(siswaId)]);
   if (!siswa) return;
   const lengkap = fieldKurang(profil, siswa).length === 0;

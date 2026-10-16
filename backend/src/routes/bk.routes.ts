@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import * as panel from '../controllers/bkPanel.controller';
 import * as kode from '../controllers/kodeBk.controller';
 import * as nilai from '../controllers/nilaiRapor.controller';
+import { perkembangan } from '../controllers/perkembangan.controller';
 import * as rek from '../controllers/rekomendasi.controller';
 import { auth } from '../middleware/auth';
 import { requireRole } from '../middleware/requireRole';
@@ -25,3 +27,17 @@ bkRouter.get('/siswa/:siswaId/rekomendasi/mapel', rek.rekomendasi('mapel'));
 bkRouter.get('/siswa/:siswaId/rekomendasi/jenjang', rek.rekomendasi('jenjang'));
 bkRouter.get('/siswa/:siswaId/keselarasan', rek.rekomendasi('keselarasan'));
 bkRouter.post('/siswa/:siswaId/rekomendasi/:jenis/penjelasan', rek.penjelasan);
+
+// Modul 8: dashboard (UC10), detail, catatan konseling (UC11), ringkasan (UC13)
+bkRouter.get('/siswa', panel.dashboard);
+bkRouter.get('/siswa/:siswaId', panel.detail);
+bkRouter.delete('/siswa/:siswaId/sekolah', panel.keluarkan);
+bkRouter.post('/keselarasan/segarkan', panel.segarkanKeselarasan);
+bkRouter.get('/ringkasan', panel.ringkasan);
+bkRouter.get('/siswa/:siswaId/catatan', panel.daftarCatatan);
+bkRouter.post('/siswa/:siswaId/catatan', panel.tambahCatatan);
+bkRouter.patch('/catatan/:id', panel.ubahCatatan);
+bkRouter.delete('/catatan/:id', panel.hapusCatatan);
+
+// Modul 9: perkembangan (UC12)
+bkRouter.get('/siswa/:siswaId/perkembangan', perkembangan);
