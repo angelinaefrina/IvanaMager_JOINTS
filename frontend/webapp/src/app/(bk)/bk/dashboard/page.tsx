@@ -266,13 +266,12 @@ export default function BkDashboardPage() {
             <Link href="/bk/dashboard" className="bk-nav-item active">
               Dashboard Siswa
             </Link>
-            <button
-              type="button"
+            <Link
+              href="/bk/siswa/citra-lestari"
               className="bk-nav-item inactive"
-              onClick={() => setActiveModal("Detail Siswa & Konseling")}
             >
-              Detail Siswa & Konseling
-            </button>
+              Detail Siswa &amp; Konseling
+            </Link>
             <button
               type="button"
               className="bk-nav-item inactive"
@@ -593,7 +592,11 @@ export default function BkDashboardPage() {
 
                         {/* Siswa & Identitas */}
                         <td className="bk-td">
-                          <div className="bk-student-cell">
+                          <Link
+                            href="/bk/siswa/citra-lestari"
+                            className="bk-student-cell"
+                            style={{ textDecoration: "none", color: "inherit" }}
+                          >
                             <div
                               className="bk-student-avatar"
                               style={{ background: siswa.avatarColor + "20", color: siswa.avatarColor }}
@@ -613,7 +616,7 @@ export default function BkDashboardPage() {
                                 <span className="bk-student-class">{siswa.rombel}</span>
                               </div>
                             </div>
-                          </div>
+                          </Link>
                         </td>
 
                         {/* Profil RIASEC */}
@@ -775,16 +778,13 @@ export default function BkDashboardPage() {
                         <td className="bk-td">
                           <div className="bk-actions-cell">
                             {siswa.actionType === "detail" && (
-                              <button
-                                type="button"
+                              <Link
+                                href={`/bk/siswa/${siswa.id === "1" ? "citra-lestari" : siswa.id}`}
                                 className="bk-action-btn-secondary"
-                                onClick={() => {
-                                  setModalStudent(siswa);
-                                  setActiveModal("Detail Siswa Lengkap");
-                                }}
+                                style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
                               >
                                 Detail Siswa
-                              </button>
+                              </Link>
                             )}
                             {siswa.actionType === "konseling" && (
                               <button
