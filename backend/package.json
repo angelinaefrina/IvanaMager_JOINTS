@@ -9,7 +9,10 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/src/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "impor-survei": "tsx scripts/impor-survei.ts",
+    "generate-sintetis": "tsx scripts/generate-sintetis.ts",
+    "impor-katalog": "tsx scripts/impor-katalog.ts"
   },
   "repository": {
     "type": "git",

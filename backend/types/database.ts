@@ -424,6 +424,7 @@ export type Database = {
       karir: {
         Row: {
           bidang_karir_id: number | null
+          catatan_sumber: string | null
           deskripsi: string | null
           id: string
           is_trending: boolean
@@ -433,6 +434,7 @@ export type Database = {
         }
         Insert: {
           bidang_karir_id?: number | null
+          catatan_sumber?: string | null
           deskripsi?: string | null
           id?: string
           is_trending?: boolean
@@ -442,6 +444,7 @@ export type Database = {
         }
         Update: {
           bidang_karir_id?: number | null
+          catatan_sumber?: string | null
           deskripsi?: string | null
           id?: string
           is_trending?: boolean
@@ -774,6 +777,7 @@ export type Database = {
       prodi: {
         Row: {
           bidang_studi_id: number
+          catatan_sumber: string | null
           deskripsi: string | null
           id: string
           jenis_pendidikan: Database["public"]["Enums"]["jenis_pendidikan"][]
@@ -783,6 +787,7 @@ export type Database = {
         }
         Insert: {
           bidang_studi_id: number
+          catatan_sumber?: string | null
           deskripsi?: string | null
           id?: string
           jenis_pendidikan?: Database["public"]["Enums"]["jenis_pendidikan"][]
@@ -792,6 +797,7 @@ export type Database = {
         }
         Update: {
           bidang_studi_id?: number
+          catatan_sumber?: string | null
           deskripsi?: string | null
           id?: string
           jenis_pendidikan?: Database["public"]["Enums"]["jenis_pendidikan"][]
@@ -1849,7 +1855,7 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      impor_katalog: { Args: { p: Json }; Returns: Json }
     }
     Enums: {
       gaya_belajar: "praktik" | "teori" | "seimbang"
