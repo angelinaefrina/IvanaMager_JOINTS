@@ -25,10 +25,15 @@ function PanelKode() {
   const [berlaku, setBerlaku] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Tanggal hari ini dibaca di klien (bukan saat prerender) untuk batas minimal input.
+  const [hariIni, setHariIni] = useState<string>();
 
   useEffect(() => {
     daftarKode()
-      .then(setKode)
+      .then((k) => {
+        setKode(k);
+        setHariIni(new Date().toISOString().slice(0, 10));
+      })
       .catch((err) => setError(pesanError(err)));
   }, []);
 
@@ -75,7 +80,7 @@ function PanelKode() {
             type="date"
             className="app-input"
             value={berlaku}
-            min={new Date().toISOString().slice(0, 10)}
+            min={hariIni}
             onChange={(e) => setBerlaku(e.target.value)}
           />
         </label>
