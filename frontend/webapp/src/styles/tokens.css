@@ -83,4 +83,32 @@
 
   /* ── Max width ── */
   --max-content: 1280px;
+
+  /* ── ArahIn Official Brand Colors ── */
+  --brand-navy: #06124D;
+  --brand-blue: #1386E8;
 }
+
+/* =============================================================
+   Official ArahIn Brand Typography & Logo Styling
+   ============================================================= */
+.brand-arahin {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-primary, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-decoration: none;
+}
+
+.brand-arahin .brand-arah {
+  color: var(--brand-navy, #06124D);
+  transition: color 0.15s ease;
+}
+
+.brand-arahin .brand-in {
+  color: var(--brand-blue, #1386E8);
+  transition: color 0.15s ease;
+}
+

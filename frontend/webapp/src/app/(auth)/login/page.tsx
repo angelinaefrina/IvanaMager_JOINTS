@@ -153,7 +153,13 @@ function AuthComponent() {
         <div className="auth-header-container">
           <Link href="/" className="auth-brand" aria-label="ArahIn Beranda">
             <div className="auth-brand-top">
-              <IconArahInLogo size={32} />
+              <Image
+                src="/images/logo-tight.png"
+                alt="ArahIn Logo"
+                width={32}
+                height={32}
+                style={{ objectFit: "contain" }}
+              />
               <span className="auth-brand-name">
                 Arah<span className="auth-brand-name-in">In</span>
               </span>
