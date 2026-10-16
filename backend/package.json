@@ -19,6 +19,7 @@
     "url": "git+https://github.com/angelinaefrina/IvanaMager_JOINTS.git"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
     "@supabase/supabase-js": "^2.118.0",
     "cors": "^2.8.6",
     "dotenv": "^18.0.8",
