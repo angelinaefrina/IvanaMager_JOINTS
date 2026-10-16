@@ -2,8 +2,8 @@
 -- Seed v2
 --  Bagian A: master/instrumen, diambil dari Google Form tim (akurat
 --            selama form tidak diubah).
---  Bagian B: contoh prodi & karir DUMMY untuk uji alur. Ganti dengan
---            data dari sumber resmi sebelum demo/penjurian.
+--  Katalog prodi/karir TIDAK di-seed (data dummy dihapus); isi dari
+--  sumber resmi.
 -- =====================================================================
 
 -- ===================== A. MASTER DARI SURVEI =========================
@@ -88,39 +88,3 @@ insert into dimensi_kemampuan (kode, pernyataan, urutan, nomor_survei) values
   ('SAINS',      'Kemampuan memahami konsep sains atau melakukan eksperimen.',           7, 50),
   ('KEPEMIMPINAN','Kemampuan memimpin, bekerja sama, atau mengorganisasi kegiatan.',     8, 51),
   ('KETELITIAN', 'Kemampuan mengerjakan tugas secara teliti dan terstruktur.',           9, 52);
-
--- ===================== B. CONTOH DUMMY ===============================
-with p as (
-  insert into prodi (bidang_studi_id, nama, kode_riasec, jenis_pendidikan)
-  values
-    ((select id from bidang_studi where kode = 'KOMP'), 'Teknik Informatika', 'IRC', '{akademik,vokasi}'),
-    ((select id from bidang_studi where kode = 'KES'),  'Kedokteran',         'ISR', '{akademik}'),
-    ((select id from bidang_studi where kode = 'EBM'),  'Manajemen',          'ECS', '{akademik,vokasi}')
-  returning id, nama
-)
-insert into prodi_mapel (prodi_id, mapel_id, bobot)
-select p.id, m.id, x.bobot
-from p
-join (values
-  ('Teknik Informatika', 'MAT', 1.0), ('Teknik Informatika', 'INF', 1.0), ('Teknik Informatika', 'FIS', 0.6),
-  ('Kedokteran',         'BIO', 1.0), ('Kedokteran',         'KIM', 1.0), ('Kedokteran',         'FIS', 0.5),
-  ('Manajemen',          'EKO', 1.0), ('Manajemen',          'MAT', 0.7), ('Manajemen',          'BING', 0.5)
-) as x(prodi, kode, bobot) on x.prodi = p.nama
-join mapel m on m.kode = x.kode;
-
-insert into karir (nama, kode_riasec, is_trending, bidang_karir_id) values
-  ('Software Engineer', 'IRC', true,  (select id from bidang_karir where kode = 'TI')),
-  ('Data Analyst',      'ICE', true,  (select id from bidang_karir where kode = 'TI')),
-  ('Dokter Umum',       'ISR', false, (select id from bidang_karir where kode = 'KESEHATAN')),
-  ('Manajer Pemasaran', 'ESA', false, (select id from bidang_karir where kode = 'BISNIS'));
-
-insert into karir_prodi (karir_id, prodi_id)
-select k.id, p.id from (values
-  ('Software Engineer', 'Teknik Informatika'),
-  ('Data Analyst',      'Teknik Informatika'),
-  ('Data Analyst',      'Manajemen'),
-  ('Dokter Umum',       'Kedokteran'),
-  ('Manajer Pemasaran', 'Manajemen')
-) as x(karir, prodi)
-join karir k on k.nama = x.karir
-join prodi p on p.nama = x.prodi;
