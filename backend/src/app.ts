@@ -1,3 +1,4 @@
+import path from 'node:path';
 import cors from 'cors';
 import express, { Router } from 'express';
 import { corsOrigins } from './config/env';
@@ -18,6 +19,10 @@ app.use(express.json({ limit: '1mb' }));
 
 const api = Router();
 api.use('/health', healthRouter);
+// Spesifikasi OpenAPI (publik) untuk impor Postman/Insomnia lewat URL. Server dijalankan dari backend/.
+api.get('/openapi.yaml', (_req, res) => {
+  res.type('application/yaml').sendFile(path.resolve(process.cwd(), 'openapi.yaml'));
+});
 api.use('/me', meRouter);
 api.use('/master', masterRouter);
 api.use('/asesmen', asesmenRouter);
