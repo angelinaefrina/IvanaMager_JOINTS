@@ -19,495 +19,23 @@ import {
   IconMenu,
   IconBookmark,
   IconTrendingUp,
-  IconWallet,
   IconBriefcase,
   IconFlame,
-  IconGraduationCap,
   IconBook,
   IconTarget,
 } from "../../../components/siswa/KatalogIcons";
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
-type TipeRiasec = "R" | "I" | "A" | "S" | "E" | "C";
-
-const NAMA_RIASEC: Record<TipeRiasec, string> = {
-  R: "Realistic",
-  I: "Investigative",
-  A: "Artistic",
-  S: "Social",
-  E: "Enterprising",
-  C: "Conventional",
-};
-
-/** Profil RIASEC siswa (mock — samakan dengan hasil tes minat terakhir). */
-const RIASEC_SISWA = "IRC";
-
-interface ProdiRujukan {
-  nama: string;
-  match: number;
-  riasec: string;
-  rumpun: string;
-  deskripsi: string;
-  kampus: string;
-  rasio: string;
-}
-
-interface MapelKesiapan {
-  nama: string;
-  nilai: number;
-  minimal: number;
-}
-
-interface LangkahKarir {
-  fase: string;
-  judul: string;
-  deskripsi: string;
-}
-
-interface KarirItem {
-  id: string;
-  nama: string;
-  ringkas: string;
-  bidang: string;
-  tren: string;
-  riasec: string;
-  pertumbuhan: string;
-  gaji: string;
-  lapangan: string;
-  lapanganNote: string;
-  peran: string;
-  skills: string[];
-  prodi: ProdiRujukan[];
-  mapel: MapelKesiapan[];
-  roadmap: LangkahKarir[];
-}
-
-const KARIR_DATA: KarirItem[] = [
-  {
-    id: "ai-engineer",
-    nama: "Artificial Intelligence (AI) Engineer",
-    ringkas:
-      "Merancang sistem cerdas yang mampu belajar dari data, mulai dari chatbot, pengenalan wajah, hingga sistem rekomendasi.",
-    bidang: "Teknologi & Data Sains",
-    tren: "Tren 2025 • High Demand",
-    riasec: "IRC",
-    pertumbuhan: "+40% / thn",
-    gaji: "9–15 Jt",
-    lapangan: "Sangat Tinggi",
-    lapanganNote: "Global & Domestik Unicorn",
-    peran:
-      "Sebagai AI Engineer, kamu akan merancang, melatih, dan menyempurnakan algoritma cerdas berbasis Neural Networks, Large Language Models (LLM), dan Computer Vision. Pekerjaan ini menuntut perpaduan tajam antara deduksi matematika formal, rekayasa perangkat lunak berskala besar, serta etika kecerdasan artifisial.",
-    skills: [
-      "Python, PyTorch & TensorFlow (Deep Learning)",
-      "Aljabar Linear & Kalkulus Lanjut",
-      "Statistika & Probabilitas Terapan",
-      "MLOps, Cloud Computing & Docker",
-      "Natural Language Processing & Computer Vision",
-    ],
-    prodi: [
-      {
-        nama: "Teknik Informatika / Ilmu Komputer",
-        match: 98,
-        riasec: "IRC",
-        rumpun: "Rumpun Saintek",
-        deskripsi:
-          "Fokus komputasi algoritma, struktur data kompleks, rekayasa kecerdasan mesin, dan arsitektur sistem perangkat lunak.",
-        kampus: "UI, ITB, UGM, ITS",
-        rasio: "Keketatan 1 : 24",
-      },
-      {
-        nama: "Sains Data",
-        match: 95,
-        riasec: "ICR",
-        rumpun: "Rumpun Saintek",
-        deskripsi:
-          "Mengolah data berskala besar dengan statistika, machine learning, dan visualisasi untuk mendukung keputusan berbasis bukti.",
-        kampus: "ITS, UNAIR, IPB, Telkom",
-        rasio: "Keketatan 1 : 18",
-      },
-      {
-        nama: "Matematika (Peminatan Komputasi)",
-        match: 87,
-        riasec: "ICA",
-        rumpun: "Rumpun MIPA",
-        deskripsi:
-          "Membangun fondasi teori optimasi, pemodelan matematis, dan analisis numerik yang menjadi inti algoritma AI modern.",
-        kampus: "ITB, UGM, UI, UNPAD",
-        rasio: "Keketatan 1 : 12",
-      },
-    ],
-    mapel: [
-      { nama: "Matematika Tingkat Lanjut", nilai: 93, minimal: 88 },
-      { nama: "Informatika", nilai: 95, minimal: 85 },
-      { nama: "Fisika", nilai: 86, minimal: 84 },
-      { nama: "Bahasa Inggris", nilai: 82, minimal: 85 },
-    ],
-    roadmap: [
-      {
-        fase: "Kelas 12 • Sekarang",
-        judul: "Perkuat Matematika & Informatika",
-        deskripsi: "Pertahankan rata-rata rapor ≥ 90 dan ikuti OSN Informatika atau kompetisi coding.",
-      },
-      {
-        fase: "S1 • Tahun 1–2",
-        judul: "Dasar Pemrograman & Statistika",
-        deskripsi: "Kuasai Python, struktur data, aljabar linear, dan probabilitas.",
-      },
-      {
-        fase: "S1 • Tahun 3–4",
-        judul: "Spesialisasi Machine Learning",
-        deskripsi: "Ambil mata kuliah Deep Learning, magang di startup AI, dan bangun portofolio GitHub.",
-      },
-      {
-        fase: "Karier Awal",
-        judul: "Junior AI / ML Engineer",
-        deskripsi: "Bergabung dengan tim produk AI di unicorn, BUMN digital, atau perusahaan global remote.",
-      },
-    ],
-  },
-  {
-    id: "data-scientist",
-    nama: "Data Scientist",
-    ringkas:
-      "Menggali pola tersembunyi dari data untuk menjawab pertanyaan bisnis dan memprediksi tren masa depan.",
-    bidang: "Teknologi & Data Sains",
-    tren: "Tren 2025 • High Demand",
-    riasec: "ICR",
-    pertumbuhan: "+35% / thn",
-    gaji: "8–13 Jt",
-    lapangan: "Tinggi",
-    lapanganNote: "Fintech, E-commerce, BUMN",
-    peran:
-      "Data Scientist mengubah data mentah menjadi wawasan yang dapat ditindaklanjuti. Kamu akan membersihkan data, membangun model statistik dan prediktif, lalu mengomunikasikan temuan kepada pengambil keputusan melalui visualisasi yang jelas.",
-    skills: [
-      "Python, SQL & Pandas",
-      "Statistika Inferensial & Eksperimen A/B",
-      "Machine Learning (Scikit-learn)",
-      "Visualisasi Data (Tableau, Looker)",
-      "Komunikasi Bisnis & Storytelling Data",
-    ],
-    prodi: [
-      {
-        nama: "Sains Data",
-        match: 97,
-        riasec: "ICR",
-        rumpun: "Rumpun Saintek",
-        deskripsi:
-          "Kurikulum terpadu statistika, pemrograman, dan machine learning yang langsung diterapkan pada studi kasus industri.",
-        kampus: "ITS, UNAIR, IPB, Telkom",
-        rasio: "Keketatan 1 : 18",
-      },
-      {
-        nama: "Statistika",
-        match: 93,
-        riasec: "ICE",
-        rumpun: "Rumpun MIPA",
-        deskripsi:
-          "Mendalami teori peluang, inferensi, dan pemodelan statistik sebagai fondasi analisis data yang ketat.",
-        kampus: "IPB, ITS, UGM, UNPAD",
-        rasio: "Keketatan 1 : 14",
-      },
-      {
-        nama: "Teknik Informatika / Ilmu Komputer",
-        match: 89,
-        riasec: "IRC",
-        rumpun: "Rumpun Saintek",
-        deskripsi:
-          "Memberi kekuatan rekayasa perangkat lunak dan basis data untuk membangun pipeline data berskala besar.",
-        kampus: "UI, ITB, UGM, ITS",
-        rasio: "Keketatan 1 : 24",
-      },
-    ],
-    mapel: [
-      { nama: "Matematika Tingkat Lanjut", nilai: 93, minimal: 87 },
-      { nama: "Informatika", nilai: 95, minimal: 82 },
-      { nama: "Ekonomi", nilai: 84, minimal: 80 },
-      { nama: "Bahasa Inggris", nilai: 82, minimal: 84 },
-    ],
-    roadmap: [
-      {
-        fase: "Kelas 12 • Sekarang",
-        judul: "Asah Logika & Statistika",
-        deskripsi: "Fokus pada Matematika TL dan coba proyek analisis data sederhana dengan spreadsheet.",
-      },
-      {
-        fase: "S1 • Tahun 1–2",
-        judul: "Statistika & Pemrograman",
-        deskripsi: "Kuasai SQL, Python, dan metode statistik inferensial.",
-      },
-      {
-        fase: "S1 • Tahun 3–4",
-        judul: "Proyek Data Nyata",
-        deskripsi: "Ikuti kompetisi Kaggle, magang sebagai Data Analyst, dan publikasikan studi kasus.",
-      },
-      {
-        fase: "Karier Awal",
-        judul: "Junior Data Scientist",
-        deskripsi: "Bergabung dengan tim analitik di fintech, e-commerce, atau konsultan data.",
-      },
-    ],
-  },
-  {
-    id: "uiux-designer",
-    nama: "UI/UX Designer",
-    ringkas:
-      "Merancang pengalaman digital yang intuitif dan indah, dari riset pengguna hingga prototipe aplikasi.",
-    bidang: "Desain & Industri Kreatif",
-    tren: "Tren 2025 • Stabil Tinggi",
-    riasec: "AIE",
-    pertumbuhan: "+22% / thn",
-    gaji: "6–10 Jt",
-    lapangan: "Tinggi",
-    lapanganNote: "Startup, Agensi, Freelance",
-    peran:
-      "UI/UX Designer menjembatani kebutuhan pengguna dan tujuan bisnis. Kamu akan melakukan riset pengguna, menyusun alur dan wireframe, merancang antarmuka visual, lalu menguji prototipe agar produk digital mudah dan menyenangkan digunakan.",
-    skills: [
-      "Figma, Prototyping & Design System",
-      "User Research & Usability Testing",
-      "Tipografi, Warna & Layout",
-      "Information Architecture",
-      "Dasar HTML/CSS untuk Handoff",
-    ],
-    prodi: [
-      {
-        nama: "Desain Komunikasi Visual",
-        match: 94,
-        riasec: "AES",
-        rumpun: "Rumpun Seni & Desain",
-        deskripsi:
-          "Mempelajari komunikasi visual, tipografi, ilustrasi, dan desain media digital interaktif.",
-        kampus: "ITB, ISI Yogyakarta, UNS, Binus",
-        rasio: "Keketatan 1 : 16",
-      },
-      {
-        nama: "Desain Produk / Interaksi",
-        match: 90,
-        riasec: "ARI",
-        rumpun: "Rumpun Seni & Desain",
-        deskripsi:
-          "Fokus perancangan produk dan interaksi manusia–komputer berbasis riset ergonomi dan pengguna.",
-        kampus: "ITB, ITS, Telkom",
-        rasio: "Keketatan 1 : 12",
-      },
-      {
-        nama: "Sistem Informasi",
-        match: 84,
-        riasec: "ICE",
-        rumpun: "Rumpun Saintek",
-        deskripsi:
-          "Menggabungkan analisis kebutuhan bisnis dengan rancangan sistem digital yang berpusat pada pengguna.",
-        kampus: "UI, ITS, UGM, Telkom",
-        rasio: "Keketatan 1 : 15",
-      },
-    ],
-    mapel: [
-      { nama: "Seni Budaya / Seni Rupa", nilai: 88, minimal: 85 },
-      { nama: "Informatika", nilai: 95, minimal: 80 },
-      { nama: "Bahasa Indonesia", nilai: 87, minimal: 82 },
-      { nama: "Bahasa Inggris", nilai: 82, minimal: 82 },
-    ],
-    roadmap: [
-      {
-        fase: "Kelas 12 • Sekarang",
-        judul: "Bangun Portofolio Awal",
-        deskripsi: "Redesain aplikasi favoritmu di Figma dan siapkan portofolio untuk seleksi prodi desain.",
-      },
-      {
-        fase: "S1 • Tahun 1–2",
-        judul: "Dasar Desain Visual",
-        deskripsi: "Pelajari prinsip desain, tipografi, dan teori warna.",
-      },
-      {
-        fase: "S1 • Tahun 3–4",
-        judul: "Riset & Studi Kasus",
-        deskripsi: "Magang di startup, ikuti bootcamp UX, dan tulis studi kasus mendalam.",
-      },
-      {
-        fase: "Karier Awal",
-        judul: "Junior Product Designer",
-        deskripsi: "Bergabung dengan tim produk digital atau agensi kreatif.",
-      },
-    ],
-  },
-  {
-    id: "cyber-security",
-    nama: "Cyber Security Analyst",
-    ringkas:
-      "Melindungi sistem dan data organisasi dari serangan siber melalui pemantauan, analisis, dan respons insiden.",
-    bidang: "Teknologi & Keamanan Siber",
-    tren: "Tren 2025 • Kekurangan Talenta",
-    riasec: "IRC",
-    pertumbuhan: "+32% / thn",
-    gaji: "8–14 Jt",
-    lapangan: "Sangat Tinggi",
-    lapanganNote: "Perbankan, BSSN, BUMN",
-    peran:
-      "Cyber Security Analyst memantau jaringan, mendeteksi ancaman, dan merespons insiden keamanan. Kamu akan menguji celah sistem, menyusun kebijakan keamanan, serta memastikan data sensitif terlindungi sesuai regulasi.",
-    skills: [
-      "Jaringan Komputer & Protokol TCP/IP",
-      "Linux, Scripting & Python",
-      "Penetration Testing & Ethical Hacking",
-      "Kriptografi Terapan",
-      "SIEM & Incident Response",
-    ],
-    prodi: [
-      {
-        nama: "Teknik Informatika / Ilmu Komputer",
-        match: 95,
-        riasec: "IRC",
-        rumpun: "Rumpun Saintek",
-        deskripsi:
-          "Memberi fondasi sistem operasi, jaringan, dan keamanan perangkat lunak dengan peminatan keamanan siber.",
-        kampus: "UI, ITB, UGM, ITS",
-        rasio: "Keketatan 1 : 24",
-      },
-      {
-        nama: "D4 Rekayasa Kriptografi",
-        match: 92,
-        riasec: "ICR",
-        rumpun: "Sekolah Kedinasan",
-        deskripsi:
-          "Pendidikan ikatan dinas di Poltek SSN yang berfokus pada persandian dan keamanan informasi negara.",
-        kampus: "Poltek SSN (BSSN)",
-        rasio: "Ikatan Dinas • Calon ASN",
-      },
-      {
-        nama: "Teknik Komputer",
-        match: 86,
-        riasec: "RIC",
-        rumpun: "Rumpun Saintek",
-        deskripsi:
-          "Mempelajari perangkat keras, sistem tertanam, dan jaringan sebagai dasar keamanan infrastruktur.",
-        kampus: "ITS, UNDIP, Telkom, PENS",
-        rasio: "Keketatan 1 : 14",
-      },
-    ],
-    mapel: [
-      { nama: "Matematika Tingkat Lanjut", nilai: 93, minimal: 85 },
-      { nama: "Informatika", nilai: 95, minimal: 86 },
-      { nama: "Fisika", nilai: 86, minimal: 80 },
-      { nama: "Bahasa Inggris", nilai: 82, minimal: 85 },
-    ],
-    roadmap: [
-      {
-        fase: "Kelas 12 • Sekarang",
-        judul: "Kenali Dunia Keamanan Siber",
-        deskripsi: "Ikuti CTF tingkat SMA dan pelajari dasar Linux serta jaringan.",
-      },
-      {
-        fase: "S1 / D4 • Tahun 1–2",
-        judul: "Jaringan & Sistem Operasi",
-        deskripsi: "Kuasai administrasi sistem, jaringan, dan pemrograman skrip.",
-      },
-      {
-        fase: "S1 / D4 • Tahun 3–4",
-        judul: "Sertifikasi & Praktik",
-        deskripsi: "Ambil sertifikasi dasar (mis. CompTIA Security+) dan magang di SOC.",
-      },
-      {
-        fase: "Karier Awal",
-        judul: "SOC Analyst / Pentester Junior",
-        deskripsi: "Bergabung dengan tim keamanan bank, BUMN, atau lembaga negara.",
-      },
-    ],
-  },
-  {
-    id: "cloud-architect",
-    nama: "Cloud Solutions Architect",
-    ringkas:
-      "Merancang infrastruktur cloud yang andal, aman, dan hemat biaya untuk aplikasi berskala jutaan pengguna.",
-    bidang: "Teknologi & Infrastruktur",
-    tren: "Tren 2025 • High Demand",
-    riasec: "RIC",
-    pertumbuhan: "+28% / thn",
-    gaji: "10–16 Jt",
-    lapangan: "Tinggi",
-    lapanganNote: "Cloud Provider & Enterprise",
-    peran:
-      "Cloud Solutions Architect merancang arsitektur sistem di platform seperti AWS, GCP, atau Azure. Kamu akan menentukan cara aplikasi di-deploy, diskalakan, dan diamankan, sambil menyeimbangkan performa dan biaya operasional.",
-    skills: [
-      "AWS / GCP / Azure Fundamentals",
-      "Kubernetes, Docker & Infrastructure as Code",
-      "Jaringan & Keamanan Cloud",
-      "Linux & Otomasi Skrip",
-      "Desain Sistem Terdistribusi",
-    ],
-    prodi: [
-      {
-        nama: "Teknik Informatika / Ilmu Komputer",
-        match: 94,
-        riasec: "IRC",
-        rumpun: "Rumpun Saintek",
-        deskripsi:
-          "Mempelajari sistem terdistribusi, jaringan, dan rekayasa perangkat lunak sebagai dasar arsitektur cloud.",
-        kampus: "UI, ITB, UGM, ITS",
-        rasio: "Keketatan 1 : 24",
-      },
-      {
-        nama: "Teknik Komputer",
-        match: 90,
-        riasec: "RIC",
-        rumpun: "Rumpun Saintek",
-        deskripsi:
-          "Fokus infrastruktur, jaringan, dan sistem komputer yang menopang layanan cloud modern.",
-        kampus: "ITS, UNDIP, Telkom, PENS",
-        rasio: "Keketatan 1 : 14",
-      },
-      {
-        nama: "D4 Teknologi Rekayasa Internet",
-        match: 85,
-        riasec: "RCI",
-        rumpun: "Vokasi Terapan",
-        deskripsi:
-          "Pendidikan vokasi dengan porsi praktik besar pada jaringan, server, dan layanan internet.",
-        kampus: "UGM (SV), PENS, Polban",
-        rasio: "70% Praktik",
-      },
-    ],
-    mapel: [
-      { nama: "Matematika Tingkat Lanjut", nilai: 93, minimal: 84 },
-      { nama: "Informatika", nilai: 95, minimal: 86 },
-      { nama: "Fisika", nilai: 86, minimal: 82 },
-      { nama: "Bahasa Inggris", nilai: 82, minimal: 85 },
-    ],
-    roadmap: [
-      {
-        fase: "Kelas 12 • Sekarang",
-        judul: "Pahami Cara Kerja Internet",
-        deskripsi: "Pelajari dasar jaringan dan coba deploy website sederhana gratis.",
-      },
-      {
-        fase: "S1 / D4 • Tahun 1–2",
-        judul: "Sistem Operasi & Jaringan",
-        deskripsi: "Kuasai Linux, jaringan komputer, dan pemrograman backend.",
-      },
-      {
-        fase: "S1 / D4 • Tahun 3–4",
-        judul: "Sertifikasi Cloud",
-        deskripsi: "Ambil sertifikasi Cloud Practitioner dan magang sebagai DevOps.",
-      },
-      {
-        fase: "Karier Awal",
-        judul: "Cloud / DevOps Engineer",
-        deskripsi: "Mengelola infrastruktur di perusahaan teknologi sebelum naik menjadi arsitek.",
-      },
-    ],
-  },
-];
-
-const TREN_CHIPS = ["ai-engineer", "data-scientist", "uiux-designer", "cyber-security", "cloud-architect"];
-
-/** Skor kecocokan sederhana: posisi huruf RIASEC yang sama mendapat bobot lebih besar. */
-function skorKecocokan(kodeKarir: string, kodeSiswa: string): number {
-  let skor = 0;
-  [...kodeKarir].forEach((huruf, i) => {
-    const j = kodeSiswa.indexOf(huruf);
-    if (j === -1) return;
-    skor += (3 - i) * (j === i ? 1 : 0.7);
-  });
-  return Math.round(60 + (skor / 6) * 38);
-}
+import { daftarKarir, detailKarir } from "../../../lib/api/katalog";
+import { getTarget, simpanTargetKarir, terakhirAsesmen } from "../../../lib/api/rekomendasi";
+import { getMe, hapusTargetKarir } from "../../../lib/api/siswa";
+import type {
+  DetailKarir,
+  HasilAsesmen,
+  KarirRingkas,
+  SiswaSaya,
+  TargetKarir,
+  TipeRiasec,
+} from "../../../lib/api/types";
+import { infoKelas, labelJenis, NAMA_RIASEC, pesanError, skorKecocokan } from "../../../lib/riasec";
 
 function namaPendek(nama: string): string {
   const kurung = nama.match(/\(([^)]+)\)/);
@@ -518,33 +46,87 @@ function namaPendek(nama: string): string {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function EksplorasiKarirPage() {
-  const [activeId, setActiveId] = useState(KARIR_DATA[0].id);
-  const [query, setQuery] = useState(KARIR_DATA[0].nama);
+  // ── Data dari backend ──────────────────────────────────────────────────────
+  const [me, setMe] = useState<SiswaSaya | null>(null);
+  const [asesmen, setAsesmen] = useState<HasilAsesmen | null>(null);
+  const [targetKarir, setTargetKarir] = useState<TargetKarir[]>([]);
+  /** Kumpulan karir untuk "karir serupa" & statistik (maks. 100 dari backend). */
+  const [pool, setPool] = useState<KarirRingkas[]>([]);
+  const [totalKarir, setTotalKarir] = useState<number | null>(null);
+  const [trending, setTrending] = useState<KarirRingkas[]>([]);
+  const [saran, setSaran] = useState<KarirRingkas[]>([]);
+  const [karir, setKarir] = useState<DetailKarir | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // ── UI state ───────────────────────────────────────────────────────────────
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [suggestOpen, setSuggestOpen] = useState(false);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const karir = KARIR_DATA.find((k) => k.id === activeId) ?? KARIR_DATA[0];
-  const match = skorKecocokan(karir.riasec, RIASEC_SISWA);
-  const isSaved = saved.has(karir.id);
+  const kodeSiswa = asesmen?.kode_holland ?? null;
 
-  const saran = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return KARIR_DATA;
-    return KARIR_DATA.filter(
-      (k) =>
-        k.nama.toLowerCase().includes(q) ||
-        k.bidang.toLowerCase().includes(q) ||
-        k.skills.some((s) => s.toLowerCase().includes(q)) ||
-        k.prodi.some((p) => p.nama.toLowerCase().includes(q))
-    );
-  }, [query]);
+  useEffect(() => {
+    let batal = false;
+    Promise.all([
+      getMe(),
+      terakhirAsesmen(),
+      getTarget(),
+      daftarKarir({ limit: 100 }),
+      daftarKarir({ trending: true, limit: 5 }),
+    ])
+      .then(([m, a, t, semua, tren]) => {
+        if (batal) return;
+        setMe(m);
+        setAsesmen(a);
+        setTargetKarir(t.karir);
+        setPool(semua.items);
+        setTotalKarir(semua.total);
+        setTrending(tren.items);
 
-  const serupa = KARIR_DATA.filter((k) => k.id !== karir.id)
-    .map((k) => ({ ...k, skor: skorKecocokan(k.riasec, RIASEC_SISWA) }))
-    .sort((a, b) => b.skor - a.skor)
-    .slice(0, 3);
+        // Karir awal: ?id= dari halaman lain → paling cocok dengan minat → trending pertama.
+        const dariUrl = new URLSearchParams(window.location.search).get("id");
+        const terbaik = [...semua.items].sort(
+          (x, y) =>
+            (skorKecocokan(y.kode_riasec, a?.kode_holland ?? null) ?? 0) -
+            (skorKecocokan(x.kode_riasec, a?.kode_holland ?? null) ?? 0)
+        )[0];
+        setActiveId(dariUrl ?? terbaik?.id ?? tren.items[0]?.id ?? null);
+      })
+      .catch((err) => !batal && setError(pesanError(err)));
+    return () => {
+      batal = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeId) return;
+    let batal = false;
+    detailKarir(activeId)
+      .then((d) => {
+        if (batal) return;
+        setKarir(d);
+        setQuery(d.nama);
+      })
+      .catch((err) => !batal && setError(pesanError(err)));
+    return () => {
+      batal = true;
+    };
+  }, [activeId]);
+
+  // Saran pencarian langsung dari backend (debounce).
+  useEffect(() => {
+    if (!suggestOpen) return;
+    const q = query.trim();
+    const t = setTimeout(() => {
+      daftarKarir({ q: q || undefined, limit: 8 })
+        .then((hal) => setSaran(hal.items))
+        .catch(() => setSaran([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query, suggestOpen]);
 
   useEffect(() => {
     if (!toast) return;
@@ -552,11 +134,38 @@ export default function EksplorasiKarirPage() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  const targetIdKarir = useMemo(
+    () => new Map(targetKarir.filter((t) => t.karir).map((t) => [t.karir!.id, t.id])),
+    [targetKarir]
+  );
+
+  const match = karir ? skorKecocokan(karir.kode_riasec, kodeSiswa) : null;
+  const isSaved = karir ? targetIdKarir.has(karir.id) : false;
+
+  const prodiRujukan = useMemo(
+    () =>
+      (karir?.prodi_relevan ?? [])
+        .map((p) => ({ ...p, match: skorKecocokan(p.kode_riasec, kodeSiswa) }))
+        .sort((a, b) => (b.match ?? 0) - (a.match ?? 0)),
+    [karir, kodeSiswa]
+  );
+
+  const serupa = useMemo(
+    () =>
+      pool
+        .filter((k) => k.id !== karir?.id)
+        .map((k) => ({ ...k, skor: skorKecocokan(k.kode_riasec, kodeSiswa) }))
+        .sort((a, b) => (b.skor ?? 0) - (a.skor ?? 0))
+        .slice(0, 3),
+    [pool, karir, kodeSiswa]
+  );
+
+  const jumlahCocok = kodeSiswa
+    ? pool.filter((k) => (skorKecocokan(k.kode_riasec, kodeSiswa) ?? 0) >= 80).length
+    : null;
+
   const pilihKarir = (id: string) => {
-    const k = KARIR_DATA.find((x) => x.id === id);
-    if (!k) return;
     setActiveId(id);
-    setQuery(k.nama);
     setSuggestOpen(false);
   };
 
@@ -565,22 +174,28 @@ export default function EksplorasiKarirPage() {
     else setSuggestOpen(true);
   };
 
-  const toggleSimpan = (id: string) => {
-    const k = KARIR_DATA.find((x) => x.id === id);
-    setSaved((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    if (k) {
-      setToast(
-        saved.has(id)
-          ? `${namaPendek(k.nama)} dihapus dari Karir Impian`
-          : `${namaPendek(k.nama)} disimpan sebagai Karir Impian`
-      );
+  const toggleSimpan = async () => {
+    if (!karir || busy) return;
+    setBusy(true);
+    try {
+      const targetId = targetIdKarir.get(karir.id);
+      if (targetId) {
+        await hapusTargetKarir(targetId);
+        setTargetKarir((list) => list.filter((t) => t.id !== targetId));
+        setToast(`${namaPendek(karir.nama)} dihapus dari Karir Impian`);
+      } else {
+        const baru = await simpanTargetKarir(karir.id);
+        setTargetKarir((list) => [...list.filter((t) => t.id !== baru.id), baru]);
+        setToast(`${namaPendek(karir.nama)} disimpan sebagai Karir Impian`);
+      }
+    } catch (err) {
+      setToast(pesanError(err));
+    } finally {
+      setBusy(false);
     }
   };
+
+  const namaSiswa = me?.profil.nama ?? "Siswa";
 
   return (
     <div className="kp-page">
@@ -646,8 +261,8 @@ export default function EksplorasiKarirPage() {
                 <IconUser size={16} color="#FFFFFF" />
               </div>
               <div className="kp-user-meta">
-                <span className="kp-user-name">Citra Lestari</span>
-                <span className="kp-user-class">Kelas 12 IPA 1</span>
+                <span className="kp-user-name">{namaSiswa}</span>
+                <span className="kp-user-class">{infoKelas(me)}</span>
               </div>
             </Link>
 
@@ -681,7 +296,7 @@ export default function EksplorasiKarirPage() {
               </Link>
               <span className="ek-crumb-sep" aria-hidden="true">/</span>
               <span className="ek-crumb" aria-current="page">
-                {karir.nama}
+                {karir?.nama ?? "Memuat..."}
               </span>
             </nav>
 
@@ -690,20 +305,26 @@ export default function EksplorasiKarirPage() {
                 <h1 className="ek-title">Eksplorasi Karir Impian Masa Depan</h1>
                 <p className="ek-desc">
                   Temukan profesi yang selaras dengan minat RIASEC dan nilai rapormu.
-                  Lihat prospek kerja, keterampilan kunci, serta program studi
-                  SNBP/SNBT yang menjadi jalur menuju karir tersebut.
+                  Lihat program studi yang menjadi jalur menuju karir tersebut serta
+                  kesiapan mapel pendukungmu.
                 </p>
               </div>
 
               <div className="ek-stats-pill">
                 <div className="ek-stat">
                   <span className="ek-stat-label">KARIR TERDATA</span>
-                  <span className="ek-stat-value blue">1.240+</span>
+                  <span className="ek-stat-value blue">
+                    {totalKarir?.toLocaleString("id-ID") ?? "–"}
+                  </span>
                 </div>
                 <div className="ek-stat-divider" />
                 <div className="ek-stat">
-                  <span className="ek-stat-label">COCOK PROFIL {RIASEC_SISWA}</span>
-                  <span className="ek-stat-value">86 Karir</span>
+                  <span className="ek-stat-label">
+                    {kodeSiswa ? `COCOK PROFIL ${kodeSiswa}` : "PROFIL RIASEC"}
+                  </span>
+                  <span className="ek-stat-value">
+                    {jumlahCocok !== null ? `${jumlahCocok} Karir` : "Belum tes"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -717,7 +338,7 @@ export default function EksplorasiKarirPage() {
                   id="karir-search"
                   type="text"
                   className="ek-search-input"
-                  placeholder="Cari profesi, bidang, atau keterampilan..."
+                  placeholder="Cari profesi atau karir..."
                   value={query}
                   autoComplete="off"
                   role="combobox"
@@ -747,7 +368,7 @@ export default function EksplorasiKarirPage() {
                       </li>
                     ) : (
                       saran.map((k) => (
-                        <li key={k.id} role="option" aria-selected={k.id === karir.id}>
+                        <li key={k.id} role="option" aria-selected={k.id === karir?.id}>
                           <button
                             type="button"
                             className="ek-suggest-item"
@@ -755,7 +376,7 @@ export default function EksplorasiKarirPage() {
                             onClick={() => pilihKarir(k.id)}
                           >
                             <span>{k.nama}</span>
-                            <span className="ek-suggest-meta">{k.bidang}</span>
+                            <span className="ek-suggest-meta">{k.bidang_karir?.nama ?? "-"}</span>
                           </button>
                         </li>
                       ))
@@ -764,326 +385,341 @@ export default function EksplorasiKarirPage() {
                 )}
               </div>
 
-              <div className="ek-chips">
-                <span className="ek-chips-label">TREN 2025:</span>
-                {TREN_CHIPS.map((id) => {
-                  const k = KARIR_DATA.find((x) => x.id === id)!;
-                  const active = id === karir.id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      className={`ek-chip ${active ? "active" : ""}`}
-                      aria-pressed={active}
-                      onClick={() => pilihKarir(id)}
-                    >
-                      {active && <IconFlame size={12} color="#FFFFFF" />}
-                      {namaPendek(k.nama)}
-                    </button>
-                  );
-                })}
-              </div>
+              {trending.length > 0 && (
+                <div className="ek-chips">
+                  <span className="ek-chips-label">TRENDING:</span>
+                  {trending.map((k) => {
+                    const active = k.id === karir?.id;
+                    return (
+                      <button
+                        key={k.id}
+                        type="button"
+                        className={`ek-chip ${active ? "active" : ""}`}
+                        aria-pressed={active}
+                        onClick={() => pilihKarir(k.id)}
+                      >
+                        {active && <IconFlame size={12} color="#FFFFFF" />}
+                        {namaPendek(k.nama)}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </section>
 
+        {(error || !karir) && (
+          <p className="ek-section-desc" role={error ? "alert" : "status"} style={{ padding: "24px 0" }}>
+            {error ?? (activeId === null && totalKarir === 0 ? "Belum ada data karir." : "Memuat data karir...")}
+          </p>
+        )}
+
         {/* ── SPLIT VIEW 60 : 40 ── */}
-        <div className="ek-split">
-          {/* ════ KOLOM KIRI ════ */}
-          <div className="ek-col">
-            <article className="ek-card" aria-labelledby="karir-title">
-              <div className="ek-career-top">
-                <div className="ek-career-head">
-                  <div className="ek-badges">
-                    <span className="ek-badge field">
-                      <IconBriefcase size={11} color="#006190" />
-                      {karir.bidang}
-                    </span>
-                    <span className="ek-badge trend">{karir.tren.toUpperCase()}</span>
-                  </div>
-                  <h2 id="karir-title" className="ek-career-title">
-                    {karir.nama}
-                  </h2>
-                  <p className="ek-career-sub">{karir.ringkas}</p>
-                </div>
-
-                <button
-                  type="button"
-                  className={`ek-bookmark ${isSaved ? "saved" : ""}`}
-                  onClick={() => toggleSimpan(karir.id)}
-                  aria-pressed={isSaved}
-                  aria-label={isSaved ? "Hapus dari Karir Impian" : "Simpan sebagai Karir Impian"}
-                  title={isSaved ? "Hapus dari Karir Impian" : "Simpan sebagai Karir Impian"}
-                >
-                  <IconBookmark size={17} color="currentColor" filled={isSaved} />
-                </button>
-              </div>
-
-              <div className="ek-riasec-row">
-                <div className="ek-riasec-left">
-                  <span className="ek-riasec-label">Profil RIASEC Dibutuhkan</span>
-                  <div className="ek-riasec-pills">
-                    {[...karir.riasec].map((h, i) => (
-                      <span key={h} className={`ek-riasec-pill t${i}`}>
-                        {NAMA_RIASEC[h as TipeRiasec]} ({h})
+        {karir && (
+          <div className="ek-split">
+            {/* ════ KOLOM KIRI ════ */}
+            <div className="ek-col">
+              <article className="ek-card" aria-labelledby="karir-title">
+                <div className="ek-career-top">
+                  <div className="ek-career-head">
+                    <div className="ek-badges">
+                      <span className="ek-badge field">
+                        <IconBriefcase size={11} color="#006190" />
+                        {karir.bidang_karir?.nama ?? "Bidang karir -"}
                       </span>
-                    ))}
-                  </div>
-                </div>
-                <span className="ek-riasec-match">
-                  <IconSparkles size={14} color="#006190" />
-                  Cocok {match}% dengan profilmu
-                </span>
-              </div>
-
-              <div className="ek-metrics">
-                <div className="ek-metric">
-                  <div className="ek-metric-head">
-                    <span className="ek-metric-label">PERTUMBUHAN</span>
-                    <IconTrendingUp size={15} color="#006190" />
-                  </div>
-                  <span className="ek-metric-value">{karir.pertumbuhan}</span>
-                  <span className="ek-metric-note">Tingkat ekspansi hingga 2030</span>
-                </div>
-
-                <div className="ek-metric">
-                  <div className="ek-metric-head">
-                    <span className="ek-metric-label">RENTANG GAJI</span>
-                    <IconWallet size={16} color="#9D6B00" />
-                  </div>
-                  <span className="ek-metric-value">Rp {karir.gaji}</span>
-                  <span className="ek-metric-note">IDR / Bulan (Fresh Graduate)</span>
-                </div>
-
-                <div className="ek-metric">
-                  <div className="ek-metric-head">
-                    <span className="ek-metric-label">LAPANGAN KERJA</span>
-                    <IconBriefcase size={16} color="#007BB5" />
-                  </div>
-                  <span className="ek-metric-value">{karir.lapangan}</span>
-                  <span className="ek-metric-note">{karir.lapanganNote}</span>
-                </div>
-              </div>
-
-              <div className="ek-block">
-                <h3 className="ek-h3">Apa Peran Utama Profesi Ini?</h3>
-                <p className="ek-body">{karir.peran}</p>
-              </div>
-
-              <div className="ek-block">
-                <div className="ek-block-head">
-                  <h3 className="ek-h3">Keterampilan & Tech Stack Kunci</h3>
-                  <span className="ek-block-note">STANDAR INDUSTRI 2025</span>
-                </div>
-                <div className="ek-skills">
-                  {karir.skills.map((s) => (
-                    <span key={s} className="ek-skill">
-                      <span className="ek-skill-dot" />
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </article>
-
-            {/* Prodi Rujukan SNBP/SNBT */}
-            <section className="ek-section" aria-labelledby="prodi-title">
-              <div className="ek-section-head">
-                <div>
-                  <h2 id="prodi-title" className="ek-h2">
-                    Prodi Rujukan SNBP / SNBT
-                  </h2>
-                  <p className="ek-section-desc">
-                    Program studi yang paling relevan untuk menjadi {karir.nama},
-                    diurutkan berdasarkan kecocokan dengan profil minat dan nilai rapormu.
-                  </p>
-                </div>
-                <span className="ek-count-pill">{karir.prodi.length} Prodi Relevan</span>
-              </div>
-
-              {karir.prodi.map((p, idx) => (
-                <article key={p.nama} className="ek-major">
-                  <div className="ek-major-body">
-                    <div className="ek-major-badges">
-                      <span className={`ek-major-badge match ${idx > 0 ? "mid" : ""}`}>
-                        {p.match}% MATCH{idx === 0 ? " • PRIORITAS UTAMA" : ""}
-                      </span>
-                      <span className="ek-major-badge riasec">RIASEC: {p.riasec}</span>
-                      <span className="ek-major-rumpun">{p.rumpun}</span>
+                      {karir.is_trending && <span className="ek-badge trend">TRENDING</span>}
                     </div>
-                    <h3 className="ek-major-title">{p.nama}</h3>
-                    <p className="ek-major-desc">{p.deskripsi}</p>
-                    <div className="ek-major-meta">
-                      <span className="ek-major-meta-item">
-                        <IconBuilding size={12} color="#006190" />
-                        Kampus Unggulan: {p.kampus}
-                      </span>
-                      <span className="ek-major-meta-item muted">
-                        <IconTarget size={12} color="#525E7F" />
-                        {p.rasio}
-                      </span>
+                    <h2 id="karir-title" className="ek-career-title">
+                      {karir.nama}
+                    </h2>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`ek-bookmark ${isSaved ? "saved" : ""}`}
+                    onClick={toggleSimpan}
+                    disabled={busy}
+                    aria-pressed={isSaved}
+                    aria-label={isSaved ? "Hapus dari Karir Impian" : "Simpan sebagai Karir Impian"}
+                    title={isSaved ? "Hapus dari Karir Impian" : "Simpan sebagai Karir Impian"}
+                  >
+                    <IconBookmark size={17} color="currentColor" filled={isSaved} />
+                  </button>
+                </div>
+
+                <div className="ek-riasec-row">
+                  <div className="ek-riasec-left">
+                    <span className="ek-riasec-label">Profil RIASEC Dibutuhkan</span>
+                    <div className="ek-riasec-pills">
+                      {karir.kode_riasec ? (
+                        [...karir.kode_riasec].map((h, i) => (
+                          <span key={h} className={`ek-riasec-pill t${i}`}>
+                            {NAMA_RIASEC[h as TipeRiasec]} ({h})
+                          </span>
+                        ))
+                      ) : (
+                        <span className="ek-riasec-pill t2">Belum diisi</span>
+                      )}
                     </div>
                   </div>
-
-                  <div className="ek-major-side">
-                    <div
-                      className="ek-ring"
-                      style={{ "--p": p.match } as React.CSSProperties}
-                      aria-label={`Kecocokan ${p.match}%`}
-                    >
-                      <div className="ek-ring-inner">{p.match}%</div>
-                    </div>
-                    <Link href="/katalog-prodi" className="ek-major-link">
-                      Lihat Kampus
-                      <IconArrowRight size={12} color="currentColor" />
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </section>
-          </div>
-
-          {/* ════ KOLOM KANAN ════ */}
-          <aside className="ek-col" aria-label="Analisis Kesiapan Karir">
-            {/* Kesiapan mapel */}
-            <section className="ek-card">
-              <div className="ek-side-title">
-                <span className="ek-side-icon">
-                  <IconBook size={16} color="#006190" />
-                </span>
-                <div>
-                  <h2 className="ek-h2">Kesiapan Mapel Pendukung</h2>
-                  <p className="ek-section-desc">Rata-rata rapor Semester 1–5 vs acuan prodi rujukan</p>
+                  <span className="ek-riasec-match">
+                    <IconSparkles size={14} color="#006190" />
+                    {match !== null ? (
+                      `Cocok ${match}% dengan profilmu`
+                    ) : (
+                      <Link href="/tes-minat">Kerjakan tes minat untuk melihat kecocokan</Link>
+                    )}
+                  </span>
                 </div>
-              </div>
 
-              <ul className="ek-mapel-list">
-                {karir.mapel.map((m) => {
-                  const aman = m.nilai >= m.minimal;
-                  return (
-                    <li key={m.nama}>
-                      <div className="ek-mapel-row">
-                        <span className="ek-mapel-name">{m.nama}</span>
-                        <span className="ek-mapel-score">
-                          <span className={aman ? "ok" : "warn"}>{m.nilai}</span> / min. {m.minimal}
+                <div className="ek-metrics">
+                  <div className="ek-metric">
+                    <div className="ek-metric-head">
+                      <span className="ek-metric-label">KODE RIASEC</span>
+                      <IconSparkles size={15} color="#006190" />
+                    </div>
+                    <span className="ek-metric-value">{karir.kode_riasec ?? "-"}</span>
+                    <span className="ek-metric-note">Profil minat yang dibutuhkan</span>
+                  </div>
+
+                  <div className="ek-metric">
+                    <div className="ek-metric-head">
+                      <span className="ek-metric-label">PRODI RELEVAN</span>
+                      <IconBuilding size={16} color="#9D6B00" />
+                    </div>
+                    <span className="ek-metric-value">{karir.prodi_relevan.length} Prodi</span>
+                    <span className="ek-metric-note">Terhubung di katalog</span>
+                  </div>
+
+                  <div className="ek-metric">
+                    <div className="ek-metric-head">
+                      <span className="ek-metric-label">STATUS TREN</span>
+                      <IconTrendingUp size={16} color="#007BB5" />
+                    </div>
+                    <span className="ek-metric-value">{karir.is_trending ? "Trending" : "Reguler"}</span>
+                    <span className="ek-metric-note">{karir.bidang_karir?.nama ?? "-"}</span>
+                  </div>
+                </div>
+
+                <div className="ek-block">
+                  <h3 className="ek-h3">Apa Peran Utama Profesi Ini?</h3>
+                  <p className="ek-body">{karir.deskripsi ?? "Deskripsi karir ini belum tersedia."}</p>
+                </div>
+
+                {(karir.catatan_sumber || karir.sumber_url) && (
+                  <div className="ek-block">
+                    <div className="ek-block-head">
+                      <h3 className="ek-h3">Sumber Data</h3>
+                    </div>
+                    {karir.catatan_sumber && <p className="ek-body">{karir.catatan_sumber}</p>}
+                    {karir.sumber_url && (
+                      <a href={karir.sumber_url} target="_blank" rel="noopener noreferrer" className="ek-major-link">
+                        Buka sumber
+                        <IconArrowRight size={12} color="currentColor" />
+                      </a>
+                    )}
+                  </div>
+                )}
+              </article>
+
+              {/* Prodi Rujukan */}
+              <section className="ek-section" aria-labelledby="prodi-title">
+                <div className="ek-section-head">
+                  <div>
+                    <h2 id="prodi-title" className="ek-h2">
+                      Prodi Rujukan
+                    </h2>
+                    <p className="ek-section-desc">
+                      Program studi yang relevan untuk menjadi {karir.nama}, diurutkan
+                      berdasarkan kecocokan dengan profil minatmu.
+                    </p>
+                  </div>
+                  <span className="ek-count-pill">{prodiRujukan.length} Prodi Relevan</span>
+                </div>
+
+                {prodiRujukan.length === 0 && (
+                  <p className="ek-section-desc">Belum ada prodi yang dihubungkan dengan karir ini.</p>
+                )}
+
+                {prodiRujukan.map((p, idx) => (
+                  <article key={p.id} className="ek-major">
+                    <div className="ek-major-body">
+                      <div className="ek-major-badges">
+                        <span className={`ek-major-badge match ${idx > 0 ? "mid" : ""}`}>
+                          {p.match !== null ? `${p.match}% MATCH` : "MATCH –"}
+                          {idx === 0 && p.match !== null ? " • PRIORITAS UTAMA" : ""}
+                        </span>
+                        <span className="ek-major-badge riasec">RIASEC: {p.kode_riasec ?? "-"}</span>
+                        <span className="ek-major-rumpun">{p.bidang_studi?.nama ?? "-"}</span>
+                      </div>
+                      <h3 className="ek-major-title">{p.nama}</h3>
+                      <div className="ek-major-meta">
+                        <span className="ek-major-meta-item">
+                          <IconBuilding size={12} color="#006190" />
+                          Pendidikan {labelJenis(p.jenis_pendidikan)}
                         </span>
                       </div>
-                      <div className="ek-bar">
-                        <div
-                          className={`ek-bar-fill ${aman ? "" : "warn"}`}
-                          style={{ width: `${m.nilai}%` }}
-                        />
-                        <span className="ek-bar-mark" style={{ left: `${m.minimal}%` }} />
+                    </div>
+
+                    <div className="ek-major-side">
+                      <div
+                        className="ek-ring"
+                        style={{ "--p": p.match ?? 0 } as React.CSSProperties}
+                        aria-label={p.match !== null ? `Kecocokan ${p.match}%` : "Kecocokan belum tersedia"}
+                      >
+                        <div className="ek-ring-inner">{p.match !== null ? `${p.match}%` : "–"}</div>
                       </div>
+                      <Link
+                        href={`/katalog-prodi?q=${encodeURIComponent(p.nama)}`}
+                        className="ek-major-link"
+                      >
+                        Lihat di Katalog
+                        <IconArrowRight size={12} color="currentColor" />
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </section>
+            </div>
+
+            {/* ════ KOLOM KANAN ════ */}
+            <aside className="ek-col" aria-label="Analisis Kesiapan Karir">
+              {/* Kesiapan mapel */}
+              <section className="ek-card">
+                <div className="ek-side-title">
+                  <span className="ek-side-icon">
+                    <IconBook size={16} color="#006190" />
+                  </span>
+                  <div>
+                    <h2 className="ek-h2">Kesiapan Mapel Pendukung</h2>
+                    <p className="ek-section-desc">Nilai rapor terakhirmu pada mapel pendukung prodi rujukan</p>
+                  </div>
+                </div>
+
+                {karir.mapel_pendukung.length === 0 ? (
+                  <p className="ek-section-desc">Belum ada data mapel pendukung.</p>
+                ) : (
+                  <ul className="ek-mapel-list">
+                    {karir.mapel_pendukung.map((m) => {
+                      const nilai = m.nilai_terakhir_siswa == null ? null : Number(m.nilai_terakhir_siswa);
+                      return (
+                        <li key={m.mapel.id}>
+                          <div className="ek-mapel-row">
+                            <span className="ek-mapel-name">{m.mapel.nama}</span>
+                            <span className="ek-mapel-score">
+                              <span className="ok">{nilai ?? "–"}</span> • bobot {Number(m.bobot)}
+                            </span>
+                          </div>
+                          <div className="ek-bar">
+                            <div className="ek-bar-fill" style={{ width: `${nilai ?? 0}%` }} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                <div className="ek-legend">
+                  <span>
+                    <span className="ek-legend-swatch" /> Nilai terakhir kamu (– = belum ada nilai)
+                  </span>
+                </div>
+              </section>
+
+              {/* Karir serupa */}
+              <section className="ek-card">
+                <div className="ek-side-title">
+                  <span className="ek-side-icon">
+                    <IconSparkles size={16} color="#006190" />
+                  </span>
+                  <div>
+                    <h2 className="ek-h2">Karir Serupa untukmu</h2>
+                    <p className="ek-section-desc">
+                      {kodeSiswa ? `Berdasarkan profil RIASEC ${kodeSiswa}` : "Kerjakan tes minat agar lebih personal"}
+                    </p>
+                  </div>
+                </div>
+
+                <ul className="ek-similar-list">
+                  {serupa.map((k) => (
+                    <li key={k.id}>
+                      <button
+                        type="button"
+                        className="ek-similar"
+                        onClick={() => {
+                          pilihKarir(k.id);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      >
+                        <span>
+                          <span className="ek-similar-name">{k.nama}</span>
+                          <span className="ek-similar-meta">
+                            {k.bidang_karir?.nama ?? "-"} • RIASEC {k.kode_riasec ?? "-"}
+                          </span>
+                        </span>
+                        <span className="ek-similar-score">{k.skor !== null ? `${k.skor}%` : "–"}</span>
+                      </button>
                     </li>
-                  );
-                })}
-              </ul>
+                  ))}
+                </ul>
+              </section>
 
-              <div className="ek-legend">
-                <span>
-                  <span className="ek-legend-swatch" /> Nilai kamu
-                </span>
-                <span>
-                  <span className="ek-legend-mark" /> Acuan minimal
-                </span>
-              </div>
-            </section>
-
-            {/* Roadmap */}
-            <section className="ek-card">
-              <div className="ek-side-title">
-                <span className="ek-side-icon">
-                  <IconGraduationCap size={16} color="#006190" />
-                </span>
-                <div>
-                  <h2 className="ek-h2">Peta Jalan Menuju Karir</h2>
-                  <p className="ek-section-desc">Langkah bertahap dari bangku SMA hingga dunia kerja</p>
+              {/* CTA */}
+              <section className="ek-card ek-cta">
+                <h2 className="ek-h2">Yakin dengan pilihan ini?</h2>
+                <p className="ek-cta-desc">
+                  Simpan {namaPendek(karir.nama)} sebagai Karir Impian agar rekomendasi
+                  prodi dan analisis keselarasan mapel disesuaikan untukmu.
+                </p>
+                <div className="ek-cta-actions">
+                  <button type="button" className="ek-btn-light" onClick={toggleSimpan} disabled={busy}>
+                    {isSaved ? (
+                      <IconCheck size={14} color="#006190" />
+                    ) : (
+                      <IconBookmark size={14} color="#006190" />
+                    )}
+                    {isSaved ? "Tersimpan sebagai Karir Impian" : "Simpan Karir Impian"}
+                  </button>
+                  <button
+                    type="button"
+                    className="ek-btn-ghost"
+                    onClick={() => setToast("Permintaan konsultasi dikirim ke Guru BK")}
+                  >
+                    <IconCounselor size={14} color="#FFFFFF" />
+                    Konsultasi BK
+                  </button>
                 </div>
-              </div>
+              </section>
 
-              <ol className="ek-roadmap">
-                {karir.roadmap.map((l, i) => (
-                  <li key={l.judul} className={`ek-step ${i === 0 ? "done" : ""}`}>
-                    <span className="ek-step-num">{i + 1}</span>
-                    <div>
-                      <span className="ek-step-phase">{l.fase}</span>
-                      <p className="ek-step-title">{l.judul}</p>
-                      <p className="ek-step-desc">{l.deskripsi}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
-
-            {/* Karir serupa */}
-            <section className="ek-card">
-              <div className="ek-side-title">
-                <span className="ek-side-icon">
-                  <IconSparkles size={16} color="#006190" />
-                </span>
-                <div>
-                  <h2 className="ek-h2">Karir Serupa untukmu</h2>
-                  <p className="ek-section-desc">Berdasarkan profil RIASEC {RIASEC_SISWA}</p>
+              <section className="ek-card">
+                <div className="ek-side-title">
+                  <span className="ek-side-icon">
+                    <IconTarget size={16} color="#006190" />
+                  </span>
+                  <div>
+                    <h2 className="ek-h2">Karir Impian Tersimpan</h2>
+                    <p className="ek-section-desc">{targetKarir.length} karir tersimpan</p>
+                  </div>
                 </div>
-              </div>
-
-              <ul className="ek-similar-list">
-                {serupa.map((k) => (
-                  <li key={k.id}>
-                    <button
-                      type="button"
-                      className="ek-similar"
-                      onClick={() => {
-                        pilihKarir(k.id);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    >
-                      <span>
-                        <span className="ek-similar-name">{k.nama}</span>
-                        <span className="ek-similar-meta">
-                          {k.bidang} • Rp {k.gaji}
-                        </span>
-                      </span>
-                      <span className="ek-similar-score">{k.skor}%</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            {/* CTA */}
-            <section className="ek-card ek-cta">
-              <h2 className="ek-h2">Yakin dengan pilihan ini?</h2>
-              <p className="ek-cta-desc">
-                Simpan {namaPendek(karir.nama)} sebagai Karir Impian agar rekomendasi
-                prodi dan analisis keselarasan mapel disesuaikan untukmu.
-              </p>
-              <div className="ek-cta-actions">
-                <button
-                  type="button"
-                  className="ek-btn-light"
-                  onClick={() => toggleSimpan(karir.id)}
-                >
-                  {isSaved ? (
-                    <IconCheck size={14} color="#006190" />
-                  ) : (
-                    <IconBookmark size={14} color="#006190" />
-                  )}
-                  {isSaved ? "Tersimpan sebagai Karir Impian" : "Simpan Karir Impian"}
-                </button>
-                <button
-                  type="button"
-                  className="ek-btn-ghost"
-                  onClick={() => setToast("Permintaan konsultasi dikirim ke Guru BK")}
-                >
-                  <IconCounselor size={14} color="#FFFFFF" />
-                  Konsultasi BK
-                </button>
-              </div>
-            </section>
-          </aside>
-        </div>
+                <ul className="ek-similar-list">
+                  {targetKarir.map((t) => (
+                    <li key={t.id}>
+                      <button
+                        type="button"
+                        className="ek-similar"
+                        disabled={!t.karir}
+                        onClick={() => t.karir && pilihKarir(t.karir.id)}
+                      >
+                        <span className="ek-similar-name">{t.karir?.nama ?? t.teks_bebas ?? "-"}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </aside>
+          </div>
+        )}
       </main>
 
       {/* ═════════════════════════════════════════════════════════════════════
@@ -1216,7 +852,7 @@ export default function EksplorasiKarirPage() {
               ["/eksplorasi-karir", "Eksplorasi Karir"],
               ["/analitik", "Analisis Keselarasan"],
               ["/katalog-prodi", "Katalog Kampus"],
-              ["/profil", "Profil Siswa (Citra Lestari)"],
+              ["/profil", `Profil Siswa (${namaSiswa})`],
             ].map(([href, label]) => (
               <Link
                 key={href}

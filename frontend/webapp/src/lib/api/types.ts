@@ -130,3 +130,68 @@ export interface Halaman<T> {
   limit: number;
   offset: number;
 }
+
+// ─── Katalog (GET /katalog/...) ──────────────────────────────────────────────
+
+export type JenisPendidikan = "akademik" | "vokasi";
+
+export interface BidangStudi {
+  id: number;
+  kode: string;
+  nama: string;
+  deskripsi?: string | null;
+}
+
+/** Item GET /katalog/prodi */
+export interface ProdiRingkas {
+  id: string;
+  nama: string;
+  kode_riasec: string | null;
+  jenis_pendidikan: JenisPendidikan[];
+  sumber_url: string | null;
+  catatan_sumber: string | null;
+  bidang_studi: { id: number; kode: string; nama: string } | null;
+}
+
+/** Item GET /katalog/karir */
+export interface KarirRingkas {
+  id: string;
+  nama: string;
+  kode_riasec: string | null;
+  is_trending: boolean;
+  catatan_sumber: string | null;
+  bidang_karir: BidangKarir | null;
+}
+
+/** Mapel pendukung prodi/karir; nilai_terakhir_siswa hanya ada untuk peran siswa. */
+export interface MapelPendukung {
+  mapel: Mapel;
+  bobot: number;
+  nilai_terakhir_siswa?: number | null;
+}
+
+/** GET /katalog/prodi/:id */
+export interface DetailProdi extends ProdiRingkas {
+  deskripsi: string | null;
+  mapel_pendukung: MapelPendukung[];
+  contoh_karir: { id: string; nama: string; kode_riasec: string | null; is_trending: boolean }[];
+  perguruan_tinggi: {
+    id: string;
+    nama: string;
+    jenis: JenisPendidikan;
+    kota: string | null;
+    situs_url: string | null;
+    jenjang: string;
+    sumber_url: string | null;
+  }[];
+  status_target?: { tersimpan: boolean; target_id: string | null; is_utama: boolean };
+}
+
+/** GET /katalog/karir/:id */
+export interface DetailKarir extends KarirRingkas {
+  deskripsi: string | null;
+  sumber_url: string | null;
+  prodi_relevan: Omit<ProdiRingkas, "sumber_url" | "catatan_sumber">[];
+  mapel_pendukung: MapelPendukung[];
+  status_target?: { tersimpan: boolean; target_id: string | null };
+}

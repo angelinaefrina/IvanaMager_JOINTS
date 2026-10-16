@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import "../../../styles/katalog-prodi.css";
 
@@ -10,7 +10,6 @@ import {
   IconBell,
   IconUser,
   IconShieldSync,
-  IconDownload,
   IconBuilding,
   IconBook,
   IconGraduationCap,
@@ -37,318 +36,194 @@ import {
   CampusBannerSSN,
   CampusBannerUNAIR,
 } from "../../../components/siswa/KatalogIcons";
+import { daftarBidangStudi, daftarProdi } from "../../../lib/api/katalog";
+import { getTarget, hapusTargetProdi, tambahTargetProdi, terakhirAsesmen } from "../../../lib/api/rekomendasi";
+import { getMe } from "../../../lib/api/siswa";
+import type {
+  BidangStudi,
+  DaftarTarget,
+  HasilAsesmen,
+  JenisPendidikan,
+  ProdiRingkas,
+  SiswaSaya,
+  TipeRiasec,
+} from "../../../lib/api/types";
+import { infoKelas, labelJenis, NAMA_RIASEC, pesanError, skorKecocokan } from "../../../lib/riasec";
 
-interface ProdiCardItem {
-  id: string;
-  univName: string;
-  univShort: string;
-  univTheme: "blue" | "slate" | "amber";
-  prodiTitle: string;
-  faculty: string;
-  badgeLeft: string;
-  badgeRight: string;
-  matchPillText: string;
-  matchPillTheme: "blue" | "slate" | "amber";
-  metricLeftLabel: string;
-  metricLeftVal: string;
-  metricLeftSub: string;
-  metricRightLabel: string;
-  metricRightVal: string;
-  metricRightSub: string;
-  metricRightColor?: "red" | "amber" | "blue";
-  benchmarkLabel: string;
-  benchmarkVal: string;
-  progressPercent: number;
-  progressTheme: "blue" | "slate" | "amber" | "gold";
-  mapelTags: string[];
-  actionBtnText: string;
-  actionBtnKind: "target" | "vokasi" | "kedinasan";
-  externalLinkText: string;
-  externalUrl: string;
-  bannerComponent: React.ComponentType;
-  jenjang: "S1" | "D4" | "D3";
-  wilayah: string;
-  akreditasi: string;
-  jalur: string;
-}
-
-const PRODI_DATA: ProdiCardItem[] = [
-  {
-    id: "ui-if",
-    univName: "UNIVERSITAS INDONESIA",
-    univShort: "UI",
-    univTheme: "blue",
-    prodiTitle: "S1 Teknik Informatika",
-    faculty: "Fakultas Ilmu Komputer (Fasilkom)",
-    badgeLeft: "Akreditasi Unggul • PTN-BH",
-    badgeRight: "Depok, Jawa Barat",
-    matchPillText: "94% Match • Peluang Tinggi",
-    matchPillTheme: "blue",
-    metricLeftLabel: "KUOTA SNBP 2025",
-    metricLeftVal: "95",
-    metricLeftSub: "kursi",
-    metricRightLabel: "KEKETATAN SELEKSI",
-    metricRightVal: "1 : 24",
-    metricRightSub: "(Ketat)",
-    metricRightColor: "red",
-    benchmarkLabel: "Acuan Nilai Rapor:",
-    benchmarkVal: "Min. 91.5 (Kamu: 92.8)",
-    progressPercent: 88,
-    progressTheme: "blue",
-    mapelTags: ["Mapel: Mat TL", "Informatika", "Fisika"],
-    actionBtnText: "Kunci Jadi Target",
-    actionBtnKind: "target",
-    externalLinkText: "Buka Web Resmi PMB UI",
-    externalUrl: "https://penerimaan.ui.ac.id",
-    bannerComponent: CampusBannerUI,
-    jenjang: "S1",
-    wilayah: "Jawa Barat",
-    akreditasi: "Unggul",
-    jalur: "SNBP & SNBT",
-  },
-  {
-    id: "itb-stei",
-    univName: "INSTITUT TEKNOLOGI BANDUNG",
-    univShort: "ITB",
-    univTheme: "slate",
-    prodiTitle: "STEI - Komputasi",
-    faculty: "S1 Teknik Informatika / Sains Data",
-    badgeLeft: "Akreditasi Unggul • PTN-BH",
-    badgeRight: "Bandung, Jabar",
-    matchPillText: "88% Match • Peluang Kompetitif",
-    matchPillTheme: "slate",
-    metricLeftLabel: "KUOTA SNBP 2025",
-    metricLeftVal: "120",
-    metricLeftSub: "kursi",
-    metricRightLabel: "KEKETATAN SELEKSI",
-    metricRightVal: "1 : 28",
-    metricRightSub: "(Super Ketat)",
-    metricRightColor: "red",
-    benchmarkLabel: "Acuan Nilai Rapor:",
-    benchmarkVal: "Min. 93.0 (Kamu: 92.8)",
-    progressPercent: 82,
-    progressTheme: "slate",
-    mapelTags: ["Mapel: Matematika TL", "Fisika Tingkat Lanjut"],
-    actionBtnText: "Kunci Jadi Target",
-    actionBtnKind: "target",
-    externalLinkText: "Buka Web Resmi PMB ITB",
-    externalUrl: "https://admission.itb.ac.id",
-    bannerComponent: CampusBannerITB,
-    jenjang: "S1",
-    wilayah: "Jawa Barat",
-    akreditasi: "Unggul",
-    jalur: "SNBP & SNBT",
-  },
-  {
-    id: "pens-rpl",
-    univName: "POLITEKNIK ELEKTRONIKA NEGERI SURABAYA",
-    univShort: "PENS",
-    univTheme: "amber",
-    prodiTitle: "D4 Rekayasa Perangkat Lunak",
-    faculty: "Departemen Teknik Informatika & Komputer",
-    badgeLeft: "Unggul • Vokasi Top Nasional",
-    badgeRight: "Surabaya, Jatim",
-    matchPillText: "98% Match • Rekomendasi Teratas",
-    matchPillTheme: "amber",
-    metricLeftLabel: "KUOTA SNBP 2025",
-    metricLeftVal: "60",
-    metricLeftSub: "kursi",
-    metricRightLabel: "FOKUS PEMBELAJARAN",
-    metricRightVal: "70% Praktik",
-    metricRightSub: "",
-    metricRightColor: "amber",
-    benchmarkLabel: "Acuan Nilai Rapor:",
-    benchmarkVal: "Min. 86.0 (Kamu: 92.8)",
-    progressPercent: 98,
-    progressTheme: "amber",
-    mapelTags: ["Mapel: Kejuruan RPL / TI", "Matematika"],
-    actionBtnText: "Pilih Opsi Vokasi",
-    actionBtnKind: "vokasi",
-    externalLinkText: "Buka Web Resmi SPMB PENS",
-    externalUrl: "https://pmb.pens.ac.id",
-    bannerComponent: CampusBannerPENS,
-    jenjang: "D4",
-    wilayah: "Jawa Timur",
-    akreditasi: "Unggul",
-    jalur: "SNBP & SNBT",
-  },
-  {
-    id: "ugm-ilkom",
-    univName: "UNIVERSITAS GADJAH MADA",
-    univShort: "UGM",
-    univTheme: "blue",
-    prodiTitle: "S1 Ilmu Komputer",
-    faculty: "Fakultas MIPA (FMIPA)",
-    badgeLeft: "Akreditasi Unggul • PTN-BH",
-    badgeRight: "Sleman, D.I. Yogyakarta",
-    matchPillText: "91% Match • Peluang Kompetitif",
-    matchPillTheme: "blue",
-    metricLeftLabel: "KUOTA SNBP 2025",
-    metricLeftVal: "85",
-    metricLeftSub: "kursi",
-    metricRightLabel: "KEKETATAN SELEKSI",
-    metricRightVal: "1 : 22",
-    metricRightSub: "(Ketat)",
-    metricRightColor: "red",
-    benchmarkLabel: "Acuan Nilai Rapor:",
-    benchmarkVal: "Min. 90.8 (Kamu: 92.8)",
-    progressPercent: 86,
-    progressTheme: "blue",
-    mapelTags: ["Mapel: Matematika TL", "Logika Komputasi"],
-    actionBtnText: "Kunci Jadi Target",
-    actionBtnKind: "target",
-    externalLinkText: "Buka Web Resmi UM UGM",
-    externalUrl: "https://um.ugm.ac.id",
-    bannerComponent: CampusBannerUGM,
-    jenjang: "S1",
-    wilayah: "D.I. Yogyakarta",
-    akreditasi: "Unggul",
-    jalur: "SNBP & SNBT",
-  },
-  {
-    id: "ssn-kripto",
-    univName: "BSSN / BADAN SIBER & SANDI NEGARA",
-    univShort: "SSN",
-    univTheme: "slate",
-    prodiTitle: "D4 Rekayasa Kriptografi",
-    faculty: "Politeknik Siber dan Sandi Negara",
-    badgeLeft: "Sekolah Kedinasan • Ikatan Dinas",
-    badgeRight: "Bogor, Jawa Barat",
-    matchPillText: "100% Bebas Biaya • Calon ASN",
-    matchPillTheme: "amber",
-    metricLeftLabel: "ALOKASI FORMASI",
-    metricLeftVal: "125",
-    metricLeftSub: "Taruna",
-    metricRightLabel: "JALUR MASUK",
-    metricRightVal: "SKD CAT + BSSN",
-    metricRightSub: "",
-    metricRightColor: "amber",
-    benchmarkLabel: "Syarat Tambahan:",
-    benchmarkVal: "Fisik Prima & Tes Samapta",
-    progressPercent: 75,
-    progressTheme: "gold",
-    mapelTags: ["Mapel: Matematika > 85", "B. Inggris > 85"],
-    actionBtnText: "Lihat Alur Kedinasan",
-    actionBtnKind: "kedinasan",
-    externalLinkText: "Buka Web Resmi Poltek SSN",
-    externalUrl: "https://poltekssn.ac.id",
-    bannerComponent: CampusBannerSSN,
-    jenjang: "D4",
-    wilayah: "Jawa Barat",
-    akreditasi: "Unggul",
-    jalur: "Ikatan Dinas",
-  },
-  {
-    id: "unair-sainsdata",
-    univName: "UNIVERSITAS AIRLANGGA",
-    univShort: "UNAIR",
-    univTheme: "blue",
-    prodiTitle: "S1 Teknologi Sains Data",
-    faculty: "Fakultas Sains dan Teknologi (FST)",
-    badgeLeft: "Akreditasi Unggul • PTN-BH",
-    badgeRight: "Surabaya, Jatim",
-    matchPillText: "93% Match • Tren AI & Big Data",
-    matchPillTheme: "blue",
-    metricLeftLabel: "KUOTA SNBP 2025",
-    metricLeftVal: "65",
-    metricLeftSub: "kursi",
-    metricRightLabel: "KEKETATAN SELEKSI",
-    metricRightVal: "1 : 18",
-    metricRightSub: "(Sedang)",
-    metricRightColor: "blue",
-    benchmarkLabel: "Acuan Nilai Rapor:",
-    benchmarkVal: "Min. 89.2 (Kamu: 92.8)",
-    progressPercent: 92,
-    progressTheme: "blue",
-    mapelTags: ["Mapel: Matematika & Statistika", "Informatika"],
-    actionBtnText: "Kunci Jadi Target",
-    actionBtnKind: "target",
-    externalLinkText: "Buka Web Resmi PPMB UNAIR",
-    externalUrl: "https://ppmb.unair.ac.id",
-    bannerComponent: CampusBannerUNAIR,
-    jenjang: "S1",
-    wilayah: "Jawa Timur",
-    akreditasi: "Unggul",
-    jalur: "SNBP & SNBT",
-  },
+// Banner kampus hanya dekoratif (katalog berbasis prodi, bukan per kampus).
+const BANNERS = [
+  CampusBannerUI,
+  CampusBannerITB,
+  CampusBannerPENS,
+  CampusBannerUGM,
+  CampusBannerSSN,
+  CampusBannerUNAIR,
 ];
 
+const PAGE_SIZE = 12;
+
+const JENIS_OPSI: { id: "" | JenisPendidikan; label: string }[] = [
+  { id: "", label: "Semua" },
+  { id: "akademik", label: "Akademik" },
+  { id: "vokasi", label: "Vokasi" },
+];
+
+type Tema = "blue" | "slate" | "amber";
+
+const isDraf = (p: ProdiRingkas) => /belum/i.test(p.catatan_sumber ?? "");
+
 export default function KatalogProdiPage() {
-  // ── States ────────────────────────────────────────────────────────────────
-  const [searchTerm, setSearchTerm] = useState("Teknik Informatika");
+  // ── Data dari backend ──────────────────────────────────────────────────────
+  const [me, setMe] = useState<SiswaSaya | null>(null);
+  const [asesmen, setAsesmen] = useState<HasilAsesmen | null>(null);
+  const [target, setTarget] = useState<DaftarTarget>({ karir: [], prodi: [] });
+  const [bidangList, setBidangList] = useState<BidangStudi[]>([]);
+  const [items, setItems] = useState<ProdiRingkas[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalSemua, setTotalSemua] = useState<number | null>(null);
+  /** Kunci parameter terakhir yang selesai dimuat; beda = sedang memuat. */
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // ── UI state ───────────────────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState("");
+  const [query, setQuery] = useState("");
   const [riasecEnabled, setRiasecEnabled] = useState(true);
-  const [sortBy, setSortBy] = useState<"peluang" | "kuota">("peluang");
+  const [sortBy, setSortBy] = useState<"cocok" | "nama">("cocok");
   const [activePage, setActivePage] = useState(1);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [compareModalOpen, setCompareModalOpen] = useState(false);
+  const [compareList, setCompareList] = useState<ProdiRingkas[]>([]);
+  const [jenis, setJenis] = useState<"" | JenisPendidikan>("");
+  const [bidang, setBidang] = useState("");
 
-  // Targets & Bookmarks
-  const [lockedTargets, setLockedTargets] = useState<Set<string>>(
-    new Set(["ui-if"])
-  );
-  const [bookmarkedItems, setBookmarkedItems] = useState<Set<string>>(
-    new Set(["ui-if", "itb-stei", "pens-rpl"])
-  );
+  const kodeSiswa = asesmen?.kode_holland ?? null;
 
-  // Compare Dock Selection
-  const [compareList, setCompareList] = useState<string[]>([
-    "ui-if",
-    "itb-stei",
-    "pens-rpl",
-  ]);
-
-  // Filters State
-  const [selectedJenjang, setSelectedJenjang] = useState("Semua (S1/D4/D3)");
-  const [selectedWilayah, setSelectedWilayah] = useState("Jawa & Jabodetabek");
-  const [selectedAkreditasi, setSelectedAkreditasi] = useState("Unggul / A");
-  const [selectedJalur, setSelectedJalur] = useState("SNBP & SNBT");
-
-  // Filtered Cards logic
-  const filteredCards = PRODI_DATA.filter((item) => {
-    if (!searchTerm.trim()) return true;
-    const q = searchTerm.toLowerCase();
-    return (
-      item.prodiTitle.toLowerCase().includes(q) ||
-      item.univName.toLowerCase().includes(q) ||
-      item.faculty.toLowerCase().includes(q) ||
-      item.mapelTags.some((tag) => tag.toLowerCase().includes(q))
-    );
-  }).sort((a, b) => {
-    if (sortBy === "peluang") {
-      return b.progressPercent - a.progressPercent;
-    } else {
-      const kuotaA = parseInt(a.metricLeftVal) || 0;
-      const kuotaB = parseInt(b.metricLeftVal) || 0;
-      return kuotaB - kuotaA;
-    }
-  });
-
-  const toggleLockTarget = (id: string) => {
-    setLockedTargets((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const cari = (q: string) => {
+    setQuery(q);
+    setActivePage(1);
   };
 
-  const toggleBookmark = (id: string) => {
-    setBookmarkedItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    // Sync with compare list
-    setCompareList((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((item) => item !== id);
+  // Data awal: profil, hasil tes minat, target, bidang studi. ?q= dari halaman lain.
+  useEffect(() => {
+    let batal = false;
+    Promise.all([getMe(), terakhirAsesmen(), getTarget(), daftarBidangStudi()])
+      .then(([m, a, t, b]) => {
+        if (batal) return;
+        const q = new URLSearchParams(window.location.search).get("q");
+        if (q) {
+          setSearchTerm(q);
+          cari(q);
+        }
+        setMe(m);
+        setAsesmen(a);
+        setTarget(t);
+        setBidangList(b);
+      })
+      .catch((err) => !batal && setError(pesanError(err)));
+    return () => {
+      batal = true;
+    };
+  }, []);
+
+  // Pencarian di-debounce agar tidak memanggil API per ketikan.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchTerm.trim() !== query) cari(searchTerm.trim());
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchTerm, query]);
+
+  const paramKey = JSON.stringify([query, jenis, bidang, activePage]);
+  const loading = loadedKey !== paramKey;
+
+  useEffect(() => {
+    let batal = false;
+    daftarProdi({
+      q: query || undefined,
+      jenis: jenis || undefined,
+      bidang_studi: bidang || undefined,
+      limit: PAGE_SIZE,
+      offset: (activePage - 1) * PAGE_SIZE,
+    })
+      .then((hal) => {
+        if (batal) return;
+        setItems(hal.items);
+        setTotal(hal.total);
+        if (!query && !jenis && !bidang) setTotalSemua(hal.total);
+        setError(null);
+      })
+      .catch((err) => !batal && setError(pesanError(err)))
+      .finally(() => !batal && setLoadedKey(JSON.stringify([query, jenis, bidang, activePage])));
+    return () => {
+      batal = true;
+    };
+  }, [query, jenis, bidang, activePage]);
+
+  const targetPerProdi = useMemo(
+    () => new Map(target.prodi.filter((t) => t.prodi).map((t) => [t.prodi!.id, t.id])),
+    [target]
+  );
+
+  const cards = useMemo(() => {
+    const list = items.map((p) => ({ p, match: skorKecocokan(p.kode_riasec, kodeSiswa) }));
+    if (sortBy === "nama") return list.sort((a, b) => a.p.nama.localeCompare(b.p.nama));
+    if (!riasecEnabled) return list;
+    return list.sort((a, b) => (b.match ?? 0) - (a.match ?? 0));
+  }, [items, kodeSiswa, sortBy, riasecEnabled]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageNumbers = useMemo(() => {
+    const start = Math.max(1, Math.min(activePage - 2, totalPages - 4));
+    return Array.from({ length: Math.min(5, totalPages) }, (_, i) => start + i);
+  }, [activePage, totalPages]);
+
+  const toggleLockTarget = async (p: ProdiRingkas) => {
+    if (busyId) return;
+    setBusyId(p.id);
+    try {
+      const targetId = targetPerProdi.get(p.id);
+      if (targetId) {
+        const prodi = await hapusTargetProdi(targetId);
+        setTarget((t) => ({ ...t, prodi }));
       } else {
-        if (prev.length >= 4) return [...prev.slice(1), id];
-        return [...prev, id];
+        const baru = await tambahTargetProdi({ prodi_id: p.id, sumber: "katalog" });
+        setTarget((t) => ({ ...t, prodi: [...t.prodi.filter((x) => x.id !== baru.id), baru] }));
       }
+    } catch (err) {
+      alert(pesanError(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const toggleCompare = (p: ProdiRingkas) => {
+    setCompareList((prev) => {
+      if (prev.some((x) => x.id === p.id)) return prev.filter((x) => x.id !== p.id);
+      if (prev.length >= 4) return [...prev.slice(1), p];
+      return [...prev, p];
     });
   };
+
+  const simpanSemuaPerbandingan = async () => {
+    try {
+      for (const p of compareList) {
+        if (targetPerProdi.has(p.id)) continue;
+        const baru = await tambahTargetProdi({ prodi_id: p.id, sumber: "katalog" });
+        setTarget((t) => ({ ...t, prodi: [...t.prodi.filter((x) => x.id !== baru.id), baru] }));
+      }
+      setCompareModalOpen(false);
+    } catch (err) {
+      alert(pesanError(err));
+    }
+  };
+
+  const namaBidang = bidang ? bidangList.find((b) => b.kode === bidang)?.nama ?? bidang : "Semua";
+  const labelRiasec = kodeSiswa
+    ? `Minat RIASEC: ${NAMA_RIASEC[kodeSiswa[0] as TipeRiasec] ?? kodeSiswa} (${kodeSiswa})`
+    : "Minat RIASEC: belum tes minat";
+  const namaSiswa = me?.profil.nama ?? "Siswa";
 
   return (
     <div className="kp-page">
@@ -424,8 +299,8 @@ export default function KatalogProdiPage() {
                 <IconUser size={16} color="#FFFFFF" />
               </div>
               <div className="kp-user-meta">
-                <span className="kp-user-name">Citra Lestari</span>
-                <span className="kp-user-class">Kelas 12 IPA 1</span>
+                <span className="kp-user-name">{namaSiswa}</span>
+                <span className="kp-user-class">{infoKelas(me)}</span>
               </div>
             </Link>
 
@@ -454,18 +329,16 @@ export default function KatalogProdiPage() {
               <div className="kp-hero-badge">
                 <span className="kp-hero-badge-dot" />
                 <span className="kp-hero-badge-text">
-                  KATALOG RESMI PENDIDIKAN TINGGI • SNPMB BPPP & BAN-PT (UC09 / F16)
+                  KATALOG PROGRAM STUDI • UC09 / F16
                 </span>
               </div>
 
               {/* Title & Description */}
-              <h1 className="kp-hero-title">
-                Katalog Kampus & Daya Tampung Nasional
-              </h1>
+              <h1 className="kp-hero-title">Katalog Program Studi</h1>
               <p className="kp-hero-desc">
-                Sistem repositori terintegrasi untuk Siswa SMA & Guru BK. Eksplorasi
-                kuota seleksi SNBP/SNBT 2025, keketatan prodi, akreditasi, peta mata
-                pelajaran pendukung, serta simulasi peluang berbasis nilai rapor.
+                Telusuri program studi berdasarkan bidang studi dan jenis pendidikan,
+                lihat kecocokannya dengan minat RIASEC-mu, lalu simpan prodi yang ingin
+                kamu jadikan target.
               </p>
             </div>
 
@@ -476,19 +349,10 @@ export default function KatalogProdiPage() {
                   <IconShieldSync size={20} color="#006190" />
                 </div>
                 <div className="kp-sync-meta">
-                  <span className="kp-sync-title">Update Sinkronisasi</span>
-                  <span className="kp-sync-status">Data Resmi SNPMB 2025</span>
+                  <span className="kp-sync-title">Sumber Data</span>
+                  <span className="kp-sync-status">Database Katalog</span>
                 </div>
               </div>
-
-              <button
-                type="button"
-                className="kp-btn-primary"
-                onClick={() => alert("Mengunduh Panduan Kuota & Seleksi PTN 2025 (PDF)...")}
-              >
-                <IconDownload size={16} color="#FFFFFF" />
-                <span>Unduh Panduan PDF</span>
-              </button>
             </div>
           </div>
 
@@ -497,10 +361,12 @@ export default function KatalogProdiPage() {
             {/* Card 1 */}
             <div className="kp-stat-card">
               <div className="kp-stat-info">
-                <span className="kp-stat-label">KAMPUS TERDATA</span>
+                <span className="kp-stat-label">PROGRAM STUDI</span>
                 <div className="kp-stat-value-group">
-                  <span className="kp-stat-number">145</span>
-                  <span className="kp-stat-sub">PTN & Vokasi</span>
+                  <span className="kp-stat-number">
+                    {totalSemua?.toLocaleString("id-ID") ?? "–"}
+                  </span>
+                  <span className="kp-stat-sub">Terdata</span>
                 </div>
               </div>
               <div className="kp-stat-icon-wrapper blue-soft">
@@ -511,10 +377,10 @@ export default function KatalogProdiPage() {
             {/* Card 2 */}
             <div className="kp-stat-card">
               <div className="kp-stat-info">
-                <span className="kp-stat-label">PROGRAM STUDI</span>
+                <span className="kp-stat-label">BIDANG STUDI</span>
                 <div className="kp-stat-value-group">
-                  <span className="kp-stat-number">3.420</span>
-                  <span className="kp-stat-sub">Terverifikasi</span>
+                  <span className="kp-stat-number">{bidangList.length || "–"}</span>
+                  <span className="kp-stat-sub">Rumpun</span>
                 </div>
               </div>
               <div className="kp-stat-icon-wrapper slate-soft">
@@ -525,10 +391,10 @@ export default function KatalogProdiPage() {
             {/* Card 3 */}
             <div className="kp-stat-card">
               <div className="kp-stat-info">
-                <span className="kp-stat-label">TOTAL KUOTA SNBP</span>
+                <span className="kp-stat-label">TARGET PRODI KAMU</span>
                 <div className="kp-stat-value-group">
-                  <span className="kp-stat-number">172.500</span>
-                  <span className="kp-stat-sub amber">Kursi</span>
+                  <span className="kp-stat-number">{target.prodi.length}</span>
+                  <span className="kp-stat-sub amber">Tersimpan</span>
                 </div>
               </div>
               <div className="kp-stat-icon-wrapper amber-soft">
@@ -539,10 +405,12 @@ export default function KatalogProdiPage() {
             {/* Card 4 */}
             <div className="kp-stat-card">
               <div className="kp-stat-info">
-                <span className="kp-stat-label">COCOK MINAT KAMU</span>
+                <span className="kp-stat-label">PROFIL MINAT KAMU</span>
                 <div className="kp-stat-value-group">
-                  <span className="kp-stat-number">18</span>
-                  <span className="kp-stat-sub muted">Prodi Prioritas</span>
+                  <span className="kp-stat-number">{kodeSiswa ?? "–"}</span>
+                  <span className="kp-stat-sub muted">
+                    {kodeSiswa ? "Kode Holland" : "Belum tes minat"}
+                  </span>
                 </div>
               </div>
               <div className="kp-stat-icon-wrapper blue-dark">
@@ -567,9 +435,12 @@ export default function KatalogProdiPage() {
                 id="search-input"
                 type="text"
                 className="kp-search-input"
-                placeholder="Cari program studi, kampus, atau rumpun keilmuan..."
+                placeholder="Cari nama program studi..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") cari(searchTerm.trim());
+                }}
               />
               <div className="kp-search-trailing">
                 <span className="kp-kbd-badge">⌘K</span>
@@ -590,9 +461,7 @@ export default function KatalogProdiPage() {
             <button
               type="button"
               className="kp-btn-apply-filter"
-              onClick={() => {
-                // Trigger quick filter notification or drawer
-              }}
+              onClick={() => cari(searchTerm.trim())}
             >
               <IconSliders size={16} color="#FFFFFF" />
               <span>Terapkan Filter</span>
@@ -602,63 +471,37 @@ export default function KatalogProdiPage() {
           {/* Filter Dropdown Pills & RIASEC Toggle */}
           <div className="kp-filters-row">
             <div className="kp-filter-pills-group">
-              {/* Jenjang */}
+              {/* Jenis pendidikan */}
               <button
                 type="button"
                 className="kp-filter-pill-btn"
                 onClick={() => {
-                  const options = ["Semua (S1/D4/D3)", "S1 Sarjana", "D4 Terapan", "D3 Vokasi"];
-                  const nextIdx = (options.indexOf(selectedJenjang) + 1) % options.length;
-                  setSelectedJenjang(options[nextIdx]);
+                  const idx = JENIS_OPSI.findIndex((o) => o.id === jenis);
+                  setJenis(JENIS_OPSI[(idx + 1) % JENIS_OPSI.length].id);
+                  setActivePage(1);
                 }}
               >
-                <span>Jenjang:</span>
-                <span className="kp-pill-val-blue">{selectedJenjang}</span>
+                <span>Jenis:</span>
+                <span className="kp-pill-val-blue">
+                  {JENIS_OPSI.find((o) => o.id === jenis)?.label}
+                </span>
                 <IconChevronDown size={12} color="#0B1C30" />
               </button>
 
-              {/* Wilayah */}
+              {/* Bidang studi */}
               <button
                 type="button"
-                className="kp-filter-pill-btn"
+                className={`kp-filter-pill-btn ${bidang ? "active" : ""}`}
+                disabled={bidangList.length === 0}
                 onClick={() => {
-                  const options = ["Jawa & Jabodetabek", "Luar Jawa", "Seluruh Indonesia"];
-                  const nextIdx = (options.indexOf(selectedWilayah) + 1) % options.length;
-                  setSelectedWilayah(options[nextIdx]);
+                  const kode = ["", ...bidangList.map((b) => b.kode)];
+                  setBidang(kode[(kode.indexOf(bidang) + 1) % kode.length]);
+                  setActivePage(1);
                 }}
               >
-                <span>Wilayah:</span>
-                <span className="kp-pill-val-dark">{selectedWilayah}</span>
-                <IconChevronDown size={12} color="#0B1C30" />
-              </button>
-
-              {/* Akreditasi */}
-              <button
-                type="button"
-                className="kp-filter-pill-btn active"
-                onClick={() => {
-                  const options = ["Unggul / A", "Baik Sekali / B", "Semua Akreditasi"];
-                  const nextIdx = (options.indexOf(selectedAkreditasi) + 1) % options.length;
-                  setSelectedAkreditasi(options[nextIdx]);
-                }}
-              >
-                <IconCheck size={12} color="#006190" />
-                <span>Akreditasi: {selectedAkreditasi}</span>
-                <IconClose size={10} color="#001E30" />
-              </button>
-
-              {/* Jalur Masuk */}
-              <button
-                type="button"
-                className="kp-filter-pill-btn"
-                onClick={() => {
-                  const options = ["SNBP & SNBT", "SNBP Saja", "SNBT Saja", "Mandiri / Kedinasan"];
-                  const nextIdx = (options.indexOf(selectedJalur) + 1) % options.length;
-                  setSelectedJalur(options[nextIdx]);
-                }}
-              >
-                <span>Jalur:</span>
-                <span className="kp-pill-val-dark">{selectedJalur}</span>
+                {bidang && <IconCheck size={12} color="#006190" />}
+                <span>Bidang:</span>
+                <span className="kp-pill-val-dark">{namaBidang}</span>
                 <IconChevronDown size={12} color="#0B1C30" />
               </button>
             </div>
@@ -674,12 +517,10 @@ export default function KatalogProdiPage() {
               }}
             >
               <span className="kp-riasec-dot" />
-              <span className="kp-riasec-label">
-                Minat RIASEC: Investigative (IRC)
-              </span>
+              <span className="kp-riasec-label">{labelRiasec}</span>
               <div
                 className={`kp-switch-track ${riasecEnabled ? "on" : ""}`}
-                aria-label="Toggle filter minat RIASEC"
+                aria-label="Toggle urut berdasarkan minat RIASEC"
               >
                 <div className="kp-switch-thumb" />
               </div>
@@ -691,12 +532,14 @@ export default function KatalogProdiPage() {
         <div className="kp-context-bar">
           <div className="kp-context-text">
             <span>
-              Menampilkan {filteredCards.length} dari 48 prodi terfilter untuk
-              kata kunci &quot;{searchTerm || "Semua Prodi"}&quot;
+              Menampilkan {cards.length} dari {total} prodi untuk kata kunci &quot;
+              {query || "Semua Prodi"}&quot;
             </span>
             <span className="kp-context-sep" />
             <span className="kp-context-sub">
-              Berdasarkan Nilai Rapor Semester 1 – 5 (Rata-rata 92.8)
+              {kodeSiswa
+                ? `Kecocokan dihitung dari kode RIASEC tes minat terakhirmu (${kodeSiswa})`
+                : "Kerjakan tes minat untuk melihat kecocokan prodi"}
             </span>
           </div>
 
@@ -704,243 +547,215 @@ export default function KatalogProdiPage() {
             <span className="kp-sort-label">Urutkan:</span>
             <button
               type="button"
-              className={`kp-sort-option ${sortBy === "peluang" ? "active" : ""}`}
-              onClick={() => setSortBy("peluang")}
+              className={`kp-sort-option ${sortBy === "cocok" ? "active" : ""}`}
+              onClick={() => setSortBy("cocok")}
             >
-              Peluang Kelulusan Tertinggi
+              Kecocokan Minat Tertinggi
             </button>
             <span className="kp-sort-divider">|</span>
             <button
               type="button"
-              className={`kp-sort-option ${sortBy === "kuota" ? "active" : ""}`}
-              onClick={() => setSortBy("kuota")}
+              className={`kp-sort-option ${sortBy === "nama" ? "active" : ""}`}
+              onClick={() => setSortBy("nama")}
             >
-              Daya Tampung Terbanyak
+              Nama (A–Z)
             </button>
           </div>
         </div>
 
         {/* ── SECTION 4: 3-COLUMN CARDS GRID (RESPONSIVE PC / LAPTOP / HP) ── */}
+        {(error || loading || cards.length === 0) && (
+          <p className="kp-context-sub" role={error ? "alert" : "status"} style={{ padding: "24px 0" }}>
+            {error ?? (loading ? "Memuat katalog prodi..." : "Tidak ada prodi yang cocok dengan filter ini.")}
+          </p>
+        )}
+
         <section className="kp-cards-grid" aria-label="Daftar Program Studi">
-          {filteredCards.map((card) => {
-            const isLocked = lockedTargets.has(card.id);
-            const isBookmarked = bookmarkedItems.has(card.id);
-            const BannerComponent = card.bannerComponent;
+          {!error &&
+            cards.map(({ p, match }, idx) => {
+              const isLocked = targetPerProdi.has(p.id);
+              const isCompared = compareList.some((x) => x.id === p.id);
+              const isVokasi = p.jenis_pendidikan.includes("vokasi");
+              const tema: Tema = isVokasi ? "amber" : idx % 2 ? "slate" : "blue";
+              const BannerComponent = BANNERS[idx % BANNERS.length];
 
-            return (
-              <article key={card.id} className="kp-card">
-                {/* Visual Banner Header */}
-                <div className="kp-card-banner">
-                  <BannerComponent />
-                  <div className="kp-banner-gradient" />
+              return (
+                <article key={p.id} className="kp-card">
+                  {/* Visual Banner Header */}
+                  <div className="kp-card-banner">
+                    <BannerComponent />
+                    <div className="kp-banner-gradient" />
 
-                  {/* Top Badges */}
-                  <div className="kp-banner-top-badges">
-                    <span
-                      className={`kp-glass-badge ${
-                        card.actionBtnKind === "kedinasan" ? "amber-text" : ""
-                      }`}
-                    >
-                      {card.badgeLeft.includes("Unggul") ? (
-                        <IconCheck size={11} color="#006190" />
-                      ) : (
-                        <IconSparkles size={11} color="#7C5400" />
-                      )}
-                      <span>{card.badgeLeft}</span>
-                    </span>
-
-                    <span
-                      className={`kp-solid-badge ${
-                        card.univTheme === "slate"
-                          ? "slate"
-                          : card.actionBtnKind === "vokasi" || card.actionBtnKind === "kedinasan"
-                          ? "soft-blue"
-                          : ""
-                      }`}
-                    >
-                      <IconLocationPin size={10} color="currentColor" style={{ marginRight: 4 }} />
-                      <span>{card.badgeRight}</span>
-                    </span>
-                  </div>
-
-                  {/* Bottom Match Pill */}
-                  <div className={`kp-match-pill ${card.matchPillTheme}`}>
-                    <IconSparkles
-                      size={13}
-                      color={
-                        card.matchPillTheme === "amber"
-                          ? "#7C5400"
-                          : card.matchPillTheme === "slate"
-                          ? "#525E7E"
-                          : "#006190"
-                      }
-                    />
-                    <span>{card.matchPillText}</span>
-                  </div>
-                </div>
-
-                {/* Card Content Body */}
-                <div className="kp-card-body">
-                  {/* Univ Header */}
-                  <div className="kp-card-head">
-                    <div className="kp-card-head-info">
-                      <span className="kp-card-univ">{card.univName}</span>
-                      <h2 className="kp-card-title">{card.prodiTitle}</h2>
-                      <p className="kp-card-dept">{card.faculty}</p>
-                    </div>
-                    <div className={`kp-univ-avatar ${card.univTheme}`}>
-                      {card.univShort}
-                    </div>
-                  </div>
-
-                  {/* Telemetry Metrics Grid */}
-                  <div className="kp-metrics-grid">
-                    <div className="kp-metric-box">
-                      <span className="kp-metric-label">
-                        {card.metricLeftLabel}
-                      </span>
-                      <div className="kp-metric-val-wrap">
-                        <span className="kp-metric-val">{card.metricLeftVal}</span>
-                        {card.metricLeftSub && (
-                          <span className="kp-metric-sub">{card.metricLeftSub}</span>
+                    {/* Top Badges */}
+                    <div className="kp-banner-top-badges">
+                      <span className={`kp-glass-badge ${isDraf(p) ? "amber-text" : ""}`}>
+                        {isDraf(p) ? (
+                          <IconSparkles size={11} color="#7C5400" />
+                        ) : (
+                          <IconCheck size={11} color="#006190" />
                         )}
-                      </div>
-                    </div>
-
-                    <div className="kp-metric-box">
-                      <span className="kp-metric-label">
-                        {card.metricRightLabel}
+                        <span>{isDraf(p) ? "Data draf" : `RIASEC ${p.kode_riasec ?? "-"}`}</span>
                       </span>
-                      <div className="kp-metric-val-wrap">
-                        <span
-                          className={`kp-metric-val ${card.metricRightColor || ""}`}
-                        >
-                          {card.metricRightVal}
-                        </span>
-                        {card.metricRightSub && (
-                          <span
-                            className={`kp-metric-sub ${card.metricRightColor || ""}`}
-                          >
-                            {card.metricRightSub}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Subject Alignment & Grade Benchmark */}
-                  <div className="kp-grade-section">
-                    <div className="kp-grade-row">
-                      <span className="kp-grade-label">{card.benchmarkLabel}</span>
-                      <span className="kp-grade-val">{card.benchmarkVal}</span>
+                      <span className={`kp-solid-badge ${tema === "slate" ? "slate" : isVokasi ? "soft-blue" : ""}`}>
+                        <IconLocationPin size={10} color="currentColor" style={{ marginRight: 4 }} />
+                        <span>{p.bidang_studi?.nama ?? "-"}</span>
+                      </span>
                     </div>
 
-                    <div className="kp-progress-track">
-                      <div
-                        className={`kp-progress-fill ${card.progressTheme}`}
-                        style={{ width: `${card.progressPercent}%` }}
+                    {/* Bottom Match Pill */}
+                    <div className={`kp-match-pill ${tema}`}>
+                      <IconSparkles
+                        size={13}
+                        color={tema === "amber" ? "#7C5400" : tema === "slate" ? "#525E7E" : "#006190"}
                       />
-                    </div>
-
-                    <div className="kp-mapel-tags">
-                      {card.mapelTags.map((tag, idx) => (
-                        <span key={idx} className="kp-mapel-tag">
-                          {tag}
-                        </span>
-                      ))}
+                      <span>{match !== null ? `${match}% Cocok dengan Minatmu` : "Kecocokan belum tersedia"}</span>
                     </div>
                   </div>
 
-                  {/* Card Action Buttons */}
-                  <div className="kp-card-actions">
-                    <div className="kp-card-actions-row">
-                      <button
-                        type="button"
-                        className={`kp-btn-target ${isLocked ? "locked" : ""}`}
-                        onClick={() => toggleLockTarget(card.id)}
-                      >
-                        <IconLock size={14} color="#FFFFFF" />
-                        <span>
-                          {isLocked ? "Target Terkunci" : card.actionBtnText}
+                  {/* Card Content Body */}
+                  <div className="kp-card-body">
+                    {/* Header */}
+                    <div className="kp-card-head">
+                      <div className="kp-card-head-info">
+                        <span className="kp-card-univ">
+                          {(p.bidang_studi?.nama ?? "Bidang studi -").toUpperCase()}
                         </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className={`kp-btn-round-action ${isBookmarked ? "bookmarked" : ""}`}
-                        onClick={() => toggleBookmark(card.id)}
-                        title={isBookmarked ? "Hapus dari Perbandingan" : "Bandingkan Prodi"}
-                        aria-label="Bandingkan prodi"
-                      >
-                        <IconScale size={16} color="currentColor" />
-                      </button>
+                        <h2 className="kp-card-title">{p.nama}</h2>
+                        <p className="kp-card-dept">Pendidikan {labelJenis(p.jenis_pendidikan)}</p>
+                      </div>
+                      <div className={`kp-univ-avatar ${tema}`}>{p.bidang_studi?.kode ?? "?"}</div>
                     </div>
 
-                    <a
-                      href={card.externalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="kp-card-ext-link"
-                    >
-                      <span>{card.externalLinkText}</span>
-                      <IconExternalLink size={12} color="currentColor" />
-                    </a>
+                    {/* Metrics Grid */}
+                    <div className="kp-metrics-grid">
+                      <div className="kp-metric-box">
+                        <span className="kp-metric-label">JENIS PENDIDIKAN</span>
+                        <div className="kp-metric-val-wrap">
+                          <span className="kp-metric-val">{labelJenis(p.jenis_pendidikan)}</span>
+                        </div>
+                      </div>
+
+                      <div className="kp-metric-box">
+                        <span className="kp-metric-label">KODE RIASEC</span>
+                        <div className="kp-metric-val-wrap">
+                          <span className={`kp-metric-val ${isVokasi ? "amber" : "blue"}`}>
+                            {p.kode_riasec ?? "-"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Kecocokan minat */}
+                    <div className="kp-grade-section">
+                      <div className="kp-grade-row">
+                        <span className="kp-grade-label">Kecocokan Minat:</span>
+                        <span className="kp-grade-val">
+                          {match !== null ? `${match}% (profil ${kodeSiswa})` : "Belum tes minat"}
+                        </span>
+                      </div>
+
+                      <div className="kp-progress-track">
+                        <div
+                          className={`kp-progress-fill ${tema}`}
+                          style={{ width: `${match ?? 0}%` }}
+                        />
+                      </div>
+
+                      {isDraf(p) && (
+                        <div className="kp-mapel-tags">
+                          <span className="kp-mapel-tag" title={p.catatan_sumber ?? ""}>
+                            Data draf – belum diverifikasi
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Action Buttons */}
+                    <div className="kp-card-actions">
+                      <div className="kp-card-actions-row">
+                        <button
+                          type="button"
+                          className={`kp-btn-target ${isLocked ? "locked" : ""}`}
+                          disabled={busyId === p.id}
+                          onClick={() => toggleLockTarget(p)}
+                        >
+                          <IconLock size={14} color="#FFFFFF" />
+                          <span>
+                            {busyId === p.id ? "Menyimpan..." : isLocked ? "Target Tersimpan" : "Jadikan Target"}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`kp-btn-round-action ${isCompared ? "bookmarked" : ""}`}
+                          onClick={() => toggleCompare(p)}
+                          title={isCompared ? "Hapus dari Perbandingan" : "Bandingkan Prodi"}
+                          aria-label="Bandingkan prodi"
+                        >
+                          <IconScale size={16} color="currentColor" />
+                        </button>
+                      </div>
+
+                      {p.sumber_url && (
+                        <a
+                          href={p.sumber_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="kp-card-ext-link"
+                        >
+                          <span>Lihat Sumber Data</span>
+                          <IconExternalLink size={12} color="currentColor" />
+                        </a>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
+                </article>
+              );
+            })}
         </section>
 
         {/* ── SECTION 5: PAGINATION BAR ── */}
-        <div className="kp-pagination-bar">
-          <span className="kp-pagination-info">
-            Menampilkan halaman {activePage} dari 8 (Total 48 Program Studi Terkait)
-          </span>
+        {total > 0 && (
+          <div className="kp-pagination-bar">
+            <span className="kp-pagination-info">
+              Menampilkan halaman {activePage} dari {totalPages} (Total {total} Program Studi)
+            </span>
 
-          <div className="kp-pagination-controls">
-            <button
-              type="button"
-              className="kp-page-btn"
-              disabled={activePage === 1}
-              onClick={() => setActivePage((p) => Math.max(1, p - 1))}
-              aria-label="Halaman Sebelumnya"
-            >
-              <IconChevronLeft size={14} color="#3F4850" />
-            </button>
-
-            {[1, 2, 3].map((page) => (
+            <div className="kp-pagination-controls">
               <button
-                key={page}
                 type="button"
-                className={`kp-page-btn ${activePage === page ? "active" : ""}`}
-                onClick={() => setActivePage(page)}
+                className="kp-page-btn"
+                disabled={activePage === 1}
+                onClick={() => setActivePage((p) => Math.max(1, p - 1))}
+                aria-label="Halaman Sebelumnya"
               >
-                {page}
+                <IconChevronLeft size={14} color="#3F4850" />
               </button>
-            ))}
 
-            <span className="kp-page-dots">...</span>
+              {pageNumbers.map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  className={`kp-page-btn ${activePage === page ? "active" : ""}`}
+                  onClick={() => setActivePage(page)}
+                >
+                  {page}
+                </button>
+              ))}
 
-            <button
-              type="button"
-              className={`kp-page-btn ${activePage === 8 ? "active" : ""}`}
-              onClick={() => setActivePage(8)}
-            >
-              8
-            </button>
-
-            <button
-              type="button"
-              className="kp-page-btn"
-              disabled={activePage === 8}
-              onClick={() => setActivePage((p) => Math.min(8, p + 1))}
-              aria-label="Halaman Berikutnya"
-            >
-              <IconChevronRight size={14} color="#0B1C30" />
-            </button>
+              <button
+                type="button"
+                className="kp-page-btn"
+                disabled={activePage === totalPages}
+                onClick={() => setActivePage((p) => Math.min(totalPages, p + 1))}
+                aria-label="Halaman Berikutnya"
+              >
+                <IconChevronRight size={14} color="#0B1C30" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       {/* ═════════════════════════════════════════════════════════════════════
@@ -956,23 +771,18 @@ export default function KatalogProdiPage() {
               </div>
               <div className="kp-dock-meta">
                 <span className="kp-dock-title">
-                  Membandingkan {compareList.length} Kampus Target
+                  Membandingkan {compareList.length} Prodi
                 </span>
                 <div className="kp-dock-chips">
-                  <span className="kp-dock-chip">
-                    <span className="kp-dock-dot blue" />
-                    <span>UI (Fasilkom)</span>
-                  </span>
-                  <span>•</span>
-                  <span className="kp-dock-chip">
-                    <span className="kp-dock-dot slate" />
-                    <span>ITB (STEI)</span>
-                  </span>
-                  <span>•</span>
-                  <span className="kp-dock-chip">
-                    <span className="kp-dock-dot amber" />
-                    <span>PENS (RPLA)</span>
-                  </span>
+                  {compareList.map((p, i) => (
+                    <React.Fragment key={p.id}>
+                      {i > 0 && <span>•</span>}
+                      <span className="kp-dock-chip">
+                        <span className={`kp-dock-dot ${["blue", "slate", "amber"][i % 3]}`} />
+                        <span>{p.nama}</span>
+                      </span>
+                    </React.Fragment>
+                  ))}
                 </div>
               </div>
             </div>
@@ -982,10 +792,10 @@ export default function KatalogProdiPage() {
               <button
                 type="button"
                 className="kp-btn-counselor"
-                onClick={() => alert("Membuka ruang konsultasi dengan Guru BK...")}
+                onClick={() => setCompareList([])}
               >
-                <IconCounselor size={14} color="#7C5400" />
-                <span>Konsultasi BK</span>
+                <IconClose size={12} color="#7C5400" />
+                <span>Kosongkan</span>
               </button>
 
               <button
@@ -993,7 +803,7 @@ export default function KatalogProdiPage() {
                 className="kp-btn-compare-primary"
                 onClick={() => setCompareModalOpen(true)}
               >
-                <span>Bandingkan Prodi (UI & Peluang)</span>
+                <span>Bandingkan Prodi</span>
                 <IconArrowRight size={14} color="#FFFFFF" />
               </button>
             </div>
@@ -1133,48 +943,23 @@ export default function KatalogProdiPage() {
           </div>
 
           <div className="kp-drawer-links">
-            <Link
-              href="/beranda"
-              className="kp-drawer-link"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Beranda
-            </Link>
-            <Link
-              href="/rekomendasi"
-              className="kp-drawer-link"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Rekomendasi
-            </Link>
-            <Link
-              href="/eksplorasi-karir"
-              className="kp-drawer-link"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Eksplorasi Karir
-            </Link>
-            <Link
-              href="/analitik"
-              className="kp-drawer-link"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Analisis Keselarasan
-            </Link>
-            <Link
-              href="/katalog-prodi"
-              className="kp-drawer-link active"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Katalog Kampus
-            </Link>
-            <Link
-              href="/profil"
-              className="kp-drawer-link"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Profil Siswa (Citra Lestari)
-            </Link>
+            {[
+              ["/beranda", "Beranda"],
+              ["/rekomendasi", "Rekomendasi"],
+              ["/eksplorasi-karir", "Eksplorasi Karir"],
+              ["/analitik", "Analisis Keselarasan"],
+              ["/katalog-prodi", "Katalog Kampus"],
+              ["/profil", `Profil Siswa (${namaSiswa})`],
+            ].map(([href, label]) => (
+              <Link
+                key={href}
+                href={href}
+                className={`kp-drawer-link ${href === "/katalog-prodi" ? "active" : ""}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
@@ -1199,10 +984,10 @@ export default function KatalogProdiPage() {
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#0B1C30" }}>
-                  Matriks Perbandingan Prodi Target
+                  Matriks Perbandingan Prodi
                 </h3>
                 <span style={{ fontSize: 12, color: "#6F7881" }}>
-                  Berdasarkan Rapor Semester 1–5 & Nilai Mapel Pendukung
+                  Berdasarkan bidang studi, jenis pendidikan & kecocokan minat RIASEC
                 </span>
               </div>
             </div>
@@ -1218,32 +1003,41 @@ export default function KatalogProdiPage() {
 
           <div className="kp-modal-body">
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-              {PRODI_DATA.slice(0, 3).map((item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    border: "1px solid #E5EEFF",
-                    borderRadius: 16,
-                    padding: 16,
-                    background: "#F8F9FF",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#006190" }}>{item.univShort}</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, background: "#E5EEFF", padding: "2px 8px", borderRadius: 999 }}>{item.jenjang}</span>
+              {compareList.map((item) => {
+                const match = skorKecocokan(item.kode_riasec, kodeSiswa);
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      border: "1px solid #E5EEFF",
+                      borderRadius: 16,
+                      padding: 16,
+                      background: "#F8F9FF",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#006190" }}>
+                        {item.bidang_studi?.kode ?? "-"}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 600, background: "#E5EEFF", padding: "2px 8px", borderRadius: 999 }}>
+                        {labelJenis(item.jenis_pendidikan)}
+                      </span>
+                    </div>
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0B1C30" }}>{item.nama}</h4>
+                    <div style={{ fontSize: 12, color: "#3F4850" }}>
+                      <div><strong>Bidang Studi:</strong> {item.bidang_studi?.nama ?? "-"}</div>
+                      <div><strong>Kode RIASEC:</strong> {item.kode_riasec ?? "-"}</div>
+                      <div><strong>Status Target:</strong> {targetPerProdi.has(item.id) ? "Tersimpan" : "Belum"}</div>
+                      <div style={{ marginTop: 6, fontWeight: 700, color: "#006190" }}>
+                        {match !== null ? `${match}% cocok dengan minatmu` : "Kecocokan belum tersedia"}
+                      </div>
+                    </div>
                   </div>
-                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0B1C30" }}>{item.prodiTitle}</h4>
-                  <div style={{ fontSize: 12, color: "#3F4850" }}>
-                    <div><strong>Kuota SNBP:</strong> {item.metricLeftVal} kursi</div>
-                    <div><strong>Keketatan:</strong> {item.metricRightVal}</div>
-                    <div><strong>Acuan Rapor:</strong> {item.benchmarkVal}</div>
-                    <div style={{ marginTop: 6, fontWeight: 700, color: "#006190" }}>{item.matchPillText}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
@@ -1257,12 +1051,9 @@ export default function KatalogProdiPage() {
               <button
                 type="button"
                 className="kp-btn-primary"
-                onClick={() => {
-                  alert("Rekomendasi rasionalisasi pilihan SNBP telah disimpan ke akun Anda!");
-                  setCompareModalOpen(false);
-                }}
+                onClick={simpanSemuaPerbandingan}
               >
-                Simpan Sebagai Rencana Pilihan SNBP
+                Jadikan Semua Target
               </button>
             </div>
           </div>

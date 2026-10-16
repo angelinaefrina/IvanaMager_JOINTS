@@ -52,6 +52,9 @@ async function ambilPeran(
  *    – Siswa mengakses route BK (/bk/...) → redirect ke /beranda
  */
 export async function proxy(request: NextRequest) {
+  // SEMENTARA (dev): SKIP_AUTH=true di .env.local mematikan cek login.
+  if (process.env.SKIP_AUTH === "true") return NextResponse.next({ request });
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
